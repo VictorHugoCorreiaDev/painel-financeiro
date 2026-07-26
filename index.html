@@ -681,27 +681,24 @@ function connectSync(cfg, codigo){
     firestoreDocRef = firestore.collection('familias').doc(codigo);
     syncCfg = { firebaseConfig: cfg, codigo, deviceId };
     saveSyncCfg(syncCfg);
-    firestoreDocRef.get().then(docSnap=>{
-      if(docSnap.exists && docSnap.data() && docSnap.data().payload){
-        applyingRemote = true;
-        db = docSnap.data().payload;
-        saveDB();
-        applyingRemote = false;
-        buildSidebarPeriod(); renderNav(); renderBrand(); renderView();
-      } else {
-        pushToFirestore();
-      }
-      subscribeSync();
-      setSyncStatus('Conectado ✓ — código: ' + codigo, true);
-    }).catch(err=>{ setSyncStatus('Erro ao conectar: ' + err.message, false); });
+    subscribeSync();
+    setSyncStatus('Conectado ✓ — código: ' + codigo, true);
   }catch(err){
     setSyncStatus('Configuração inválida: ' + err.message, false);
   }
 }
 function subscribeSync(){
   if(unsubscribeSnapshot) unsubscribeSnapshot();
+  let firstSnapshot = true;
   unsubscribeSnapshot = firestoreDocRef.onSnapshot(docSnap=>{
     if(docSnap.metadata.hasPendingWrites) return;
+    if(firstSnapshot){
+      firstSnapshot = false;
+      if(!docSnap.exists || !docSnap.data() || !docSnap.data().payload){
+        pushToFirestore();
+        return;
+      }
+    }
     const remote = docSnap.data();
     if(!remote || !remote.payload || remote.updatedBy===deviceId) return;
     applyingRemote = true;
