@@ -2,15 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Painel Financeiro</title>
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="theme-color" content="#0D1326">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Painel">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -206,8 +198,32 @@
   .filter-tab:hover{ color:var(--text); }
   .filter-tab.active{ background:var(--panel-3); color:var(--amber); border-color:var(--amber); }
 
+  /* MOBILE TOPBAR + GAVETA */
+  .mobile-topbar{ display:none; }
+  .sidebar-overlay{ display:none; }
+
   @media (max-width: 980px){
-    .sidebar{ display:none; }
+    .mobile-topbar{
+      display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:40;
+      background:var(--panel); border-bottom:1px solid var(--border); padding:12px 16px;
+    }
+    .mobile-topbar .hamburger{ background:transparent; border:1px solid var(--border); border-radius:8px;
+      width:36px; height:36px; color:var(--text); font-size:17px; flex-shrink:0; }
+    .mobile-topbar .mt-title{ font-family:'Sora'; font-weight:700; font-size:15px; }
+
+    .app{ flex-direction:column; }
+    .sidebar{
+      position:fixed; top:0; left:0; height:100vh; z-index:60; width:250px;
+      transform:translateX(-105%); transition:transform .22s ease;
+    }
+    .sidebar.open{ transform:translateX(0); box-shadow:8px 0 24px rgba(0,0,0,.4); }
+    .sidebar-overlay{
+      display:block; position:fixed; inset:0; background:rgba(6,9,20,.6); z-index:55;
+      opacity:0; pointer-events:none; transition:opacity .22s ease;
+    }
+    .sidebar-overlay.open{ opacity:1; pointer-events:auto; }
+
+    .main{ padding:16px 14px 40px; }
     .kpis, .row-a, .row-b, .split-forms{ grid-template-columns:1fr; }
     .rings{ grid-template-columns:repeat(3,1fr); }
     .orc-row{ grid-template-columns:1fr; gap:6px; }
@@ -215,6 +231,11 @@
 </style>
 </head>
 <body>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="mobile-topbar">
+  <button class="hamburger" id="hamburgerBtn">☰</button>
+  <div class="mt-title">Painel Financeiro</div>
+</div>
 <div class="app">
 
   <aside class="sidebar">
@@ -525,8 +546,14 @@ const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov
 let state = { view:'painel', year:2026, month:6 };
 
 document.querySelectorAll('.nav-btn').forEach(b=>{
-  b.onclick = ()=>{ state.view = b.dataset.view; renderNav(); renderView(); };
+  b.onclick = ()=>{ state.view = b.dataset.view; renderNav(); renderView(); closeSidebar(); };
 });
+function openSidebar(){ document.querySelector('.sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
+function closeSidebar(){ document.querySelector('.sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+const hb = document.getElementById('hamburgerBtn');
+if(hb) hb.onclick = ()=>{ document.querySelector('.sidebar').classList.contains('open') ? closeSidebar() : openSidebar(); };
+const ov = document.getElementById('sidebarOverlay');
+if(ov) ov.onclick = closeSidebar;
 function renderNav(){
   document.querySelectorAll('.nav-btn').forEach(b=> b.classList.toggle('active', b.dataset.view===state.view));
   document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id==='view-'+state.view));
@@ -910,15 +937,12 @@ renderBrand();
 buildSidebarPeriod();
 renderView();
 
-if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
-}
-
 /* =========================================================
    MARCA (logo + nome + descrição editáveis)
    ========================================================= */
 function renderBrand(){
   document.getElementById('brandTitle').innerHTML = db.config.tituloApp + '<br><span id="brandSubtitle">' + db.config.subtitulo + '</span>';
+  const mtTitle = document.querySelector('.mt-title'); if(mtTitle) mtTitle.textContent = db.config.tituloApp;
   const mark = document.getElementById('brandMark');
   if(db.config.logoDataUrl){ mark.style.backgroundImage = `url(${db.config.logoDataUrl})`; }
   else{ mark.style.backgroundImage = ''; }
