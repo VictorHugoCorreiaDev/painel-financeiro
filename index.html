@@ -14,6 +14,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --bg:#0D1326; --panel:#151D38; --panel-2:#1B2444; --panel-3:#202B52; --border:#28315A;
@@ -151,6 +153,9 @@
   .field input, .field select{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
     padding:8px 10px; color:var(--text); font-size:13px; outline:none; min-width:120px; }
   .field input:focus, .field select:focus{ border-color:var(--amber); }
+  .field textarea{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
+    padding:9px 10px; color:var(--text); font-size:12px; font-family:'IBM Plex Mono',monospace; outline:none; resize:vertical; width:100%; }
+  .field textarea:focus{ border-color:var(--amber); }
   .btn{ background:var(--amber); color:#1a1305; border:none; border-radius:8px; padding:9px 16px; font-weight:700; font-size:13px; }
   .btn:hover{ filter:brightness(1.08); }
   .btn.secondary{ background:var(--panel-2); color:var(--text); border:1px solid var(--border); margin-right:8px; }
@@ -472,6 +477,31 @@
         <button class="btn secondary" onclick="document.getElementById('importFile').click()">Importar JSON</button>
         <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importarDados(event)">
       </div>
+
+      <div class="card" style="max-width:460px;">
+        <h3>🔄 Sincronização entre dispositivos</h3>
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:10px; line-height:1.5;">
+          Conecte um banco de dados gratuito (Firebase) pra você e sua esposa verem os mesmos lançamentos em tempo real, em qualquer aparelho.
+          <a href="#" onclick="toggleSyncHelp(); return false;" style="color:var(--amber); font-weight:600;">Como configurar</a>
+        </div>
+        <div id="syncHelp" style="display:none; font-size:11.5px; color:var(--muted); background:var(--panel-2); border-radius:8px; padding:12px 14px; margin-bottom:14px; line-height:1.7;">
+          1. Acesse <b style="color:var(--text)">console.firebase.google.com</b> e crie um projeto grátis (qualquer nome)<br>
+          2. No menu, vá em <b style="color:var(--text)">Build → Firestore Database → Criar banco de dados</b> (modo teste, região mais próxima ex: southamerica-east1)<br>
+          3. Vá em <b style="color:var(--text)">⚙️ Configurações do projeto → seus apps</b> → clique no ícone <b style="color:var(--text)">&lt;/&gt;</b> (Web) → registre um app<br>
+          4. Copie o objeto <b style="color:var(--text)">firebaseConfig</b> que aparece (com apiKey, projectId etc.) e cole no campo abaixo<br>
+          5. Combine com sua esposa um <b style="color:var(--text)">código da família</b> (qualquer texto único, ex: "correia-financas-26") — os dois usam o mesmo código no app de cada um
+        </div>
+        <div class="field" style="margin-bottom:10px;">
+          <label>Configuração do Firebase (cole o objeto firebaseConfig)</label>
+          <textarea id="syncConfigInput" rows="5" placeholder='{ apiKey: "...", authDomain: "...", projectId: "...", storageBucket: "...", messagingSenderId: "...", appId: "..." }'></textarea>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label>Código da família (igual nos dois aparelhos)</label>
+          <input type="text" id="syncCodigoInput" placeholder="ex: correia-financas-26">
+        </div>
+        <button class="btn" onclick="handleConnectSync()">Conectar e sincronizar</button>
+        <div id="syncStatus" style="margin-top:10px; font-size:12.5px; font-weight:600;"></div>
+      </div>
     </section>
 
   </main>
@@ -534,8 +564,89 @@ function loadDB(){
   try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw) return JSON.parse(raw); }catch(e){}
   const d = defaultDB(); saveDB(d); return d;
 }
-function saveDB(d){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(d||db)); }catch(e){} }
+function saveDB(d){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(d||db)); }catch(e){} pushToFirestore(); }
 let db = loadDB();
+
+/* =========================================================
+   SINCRONIZAÇÃO ENTRE DISPOSITIVOS (Firebase Firestore)
+   ========================================================= */
+const SYNC_KEY = 'painel_financeiro_sync_v1';
+function loadSync(){ try{ const raw = localStorage.getItem(SYNC_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
+function saveSyncCfg(s){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(s)); }catch(e){} }
+let syncCfg = loadSync();
+let deviceId = (syncCfg && syncCfg.deviceId) || ('dev-' + Math.random().toString(36).slice(2,10));
+let firestoreDocRef = null;
+let applyingRemote = false;
+let unsubscribeSnapshot = null;
+
+function parseFirebaseConfigText(text){
+  try{
+    const start = text.indexOf('{'), end = text.lastIndexOf('}');
+    if(start===-1 || end===-1) return null;
+    return (new Function('return ' + text.slice(start, end+1)))();
+  }catch(e){ return null; }
+}
+function setSyncStatus(msg, ok){
+  const el = document.getElementById('syncStatus'); if(!el) return;
+  el.textContent = msg;
+  el.style.color = ok===true ? 'var(--green)' : ok===false ? 'var(--coral)' : 'var(--muted)';
+}
+function toggleSyncHelp(){
+  const el = document.getElementById('syncHelp');
+  el.style.display = el.style.display==='block' ? 'none' : 'block';
+}
+function handleConnectSync(){
+  if(typeof firebase==='undefined'){ setSyncStatus('Não foi possível carregar o Firebase (verifique sua internet).', false); return; }
+  const raw = document.getElementById('syncConfigInput').value;
+  const codigo = document.getElementById('syncCodigoInput').value.trim();
+  if(!codigo){ setSyncStatus('Digite um código da família.', false); return; }
+  const cfg = parseFirebaseConfigText(raw);
+  if(!cfg || !cfg.projectId){ setSyncStatus('Configuração inválida — cole o objeto firebaseConfig completo.', false); return; }
+  connectSync(cfg, codigo);
+}
+function connectSync(cfg, codigo){
+  try{
+    setSyncStatus('Conectando...');
+    const app = firebase.apps && firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(cfg);
+    const firestore = firebase.firestore(app);
+    firestoreDocRef = firestore.collection('familias').doc(codigo);
+    syncCfg = { firebaseConfig: cfg, codigo, deviceId };
+    saveSyncCfg(syncCfg);
+    firestoreDocRef.get().then(docSnap=>{
+      if(docSnap.exists && docSnap.data() && docSnap.data().payload){
+        applyingRemote = true;
+        db = docSnap.data().payload;
+        saveDB();
+        applyingRemote = false;
+        buildSidebarPeriod(); renderNav(); renderBrand(); renderView();
+      } else {
+        pushToFirestore();
+      }
+      subscribeSync();
+      setSyncStatus('Conectado ✓ — código: ' + codigo, true);
+    }).catch(err=>{ setSyncStatus('Erro ao conectar: ' + err.message, false); });
+  }catch(err){
+    setSyncStatus('Configuração inválida: ' + err.message, false);
+  }
+}
+function subscribeSync(){
+  if(unsubscribeSnapshot) unsubscribeSnapshot();
+  unsubscribeSnapshot = firestoreDocRef.onSnapshot(docSnap=>{
+    if(docSnap.metadata.hasPendingWrites) return;
+    const remote = docSnap.data();
+    if(!remote || !remote.payload || remote.updatedBy===deviceId) return;
+    applyingRemote = true;
+    db = remote.payload;
+    saveDB();
+    applyingRemote = false;
+    buildSidebarPeriod(); renderNav(); renderBrand(); renderView();
+    setSyncStatus('Sincronizado agora ✓', true);
+  }, err=>{ setSyncStatus('Erro de sincronização: ' + err.message, false); });
+}
+function pushToFirestore(){
+  if(!firestoreDocRef || applyingRemote) return;
+  firestoreDocRef.set({ payload: db, updatedAt: Date.now(), updatedBy: deviceId }).catch(()=>{});
+}
 db.anosExtras = db.anosExtras || [];
 db.config.tituloApp = db.config.tituloApp || 'Painel';
 db.config.subtitulo = db.config.subtitulo || 'Finanças Pessoais';
@@ -951,6 +1062,11 @@ function deleteCategoriaKw(idx){
 function renderConfig(){
   document.getElementById('cfgMeta').value = db.config.metaEconomia;
   document.getElementById('cfgNome').value = db.config.nome;
+  if(syncCfg && syncCfg.firebaseConfig){
+    document.getElementById('syncConfigInput').value = JSON.stringify(syncCfg.firebaseConfig, null, 2);
+    document.getElementById('syncCodigoInput').value = syncCfg.codigo || '';
+    setSyncStatus(firestoreDocRef ? ('Conectado ✓ — código: ' + syncCfg.codigo) : 'Configurado — reconectando...', !!firestoreDocRef);
+  }
 }
 function saveConfig(){
   db.config.metaEconomia = parseFloat(document.getElementById('cfgMeta').value)||0;
@@ -978,6 +1094,10 @@ renderNav();
 renderBrand();
 buildSidebarPeriod();
 renderView();
+
+if(syncCfg && syncCfg.firebaseConfig && syncCfg.codigo){
+  connectSync(syncCfg.firebaseConfig, syncCfg.codigo);
+}
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
