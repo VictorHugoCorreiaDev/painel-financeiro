@@ -597,9 +597,22 @@ let db = loadDB();
    SINCRONIZAÇÃO ENTRE DISPOSITIVOS (Firebase Firestore)
    ========================================================= */
 const SYNC_KEY = 'painel_financeiro_sync_v1';
+/* Config padrão da família — assim o app reconecta sozinho mesmo se o
+   localStorage for perdido (ex: reinstalar o PWA no iOS apaga os dados locais). */
+const DEFAULT_SYNC = {
+  firebaseConfig: {
+    apiKey: "AIzaSyAoWdQB3g9hoV2rehJ7NOYR46EGtLcGjWM",
+    authDomain: "painel-financeiro-35769.firebaseapp.com",
+    projectId: "painel-financeiro-35769",
+    storageBucket: "painel-financeiro-35769.firebasestorage.app",
+    messagingSenderId: "320445583517",
+    appId: "1:320445583517:web:cb939393cf6748779e0474"
+  },
+  codigo: "correia-finanças06"
+};
 function loadSync(){ try{ const raw = localStorage.getItem(SYNC_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
 function saveSyncCfg(s){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(s)); }catch(e){} }
-let syncCfg = loadSync();
+let syncCfg = loadSync() || DEFAULT_SYNC;
 let deviceId = (syncCfg && syncCfg.deviceId) || ('dev-' + Math.random().toString(36).slice(2,10));
 let unsubscribeSnapshot = null;
 
