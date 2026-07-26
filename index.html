@@ -2,7 +2,15 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Painel Financeiro</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0D1326">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Painel">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -149,7 +157,8 @@
   .btn.danger-ghost{ background:transparent; color:var(--coral); border:1px solid transparent; padding:4px 8px; font-size:15px; border-radius:6px; }
   .btn.danger-ghost:hover{ background:rgba(232,99,107,.12); }
 
-  table.data{ width:100%; border-collapse:collapse; font-size:13px; }
+  .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -4px; padding:0 4px; }
+  table.data{ width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
   table.data th{ text-align:left; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.04em;
     font-weight:600; padding:8px 10px; border-bottom:1px solid var(--border); }
   table.data td{ padding:9px 10px; border-bottom:1px solid var(--panel-2); }
@@ -162,6 +171,7 @@
 
   .orc-row{ display:grid; grid-template-columns:1fr 130px 1fr 90px 110px; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
   .orc-row .status{ font-size:12px; font-weight:700; text-align:right; }
+  .mobile-label{ display:none; }
   .orc-input{ background:var(--panel-2); border:1px solid var(--border); border-radius:7px; color:var(--text);
     padding:6px 8px; font-size:13px; width:100%; font-family:'IBM Plex Mono'; }
 
@@ -205,15 +215,17 @@
   @media (max-width: 980px){
     .mobile-topbar{
       display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:40;
-      background:var(--panel); border-bottom:1px solid var(--border); padding:12px 16px;
+      background:var(--panel); border-bottom:1px solid var(--border);
+      padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
     }
     .mobile-topbar .hamburger{ background:transparent; border:1px solid var(--border); border-radius:8px;
-      width:36px; height:36px; color:var(--text); font-size:17px; flex-shrink:0; }
+      width:40px; height:40px; color:var(--text); font-size:18px; flex-shrink:0; }
     .mobile-topbar .mt-title{ font-family:'Sora'; font-weight:700; font-size:15px; }
 
     .app{ flex-direction:column; }
     .sidebar{
       position:fixed; top:0; left:0; height:100vh; z-index:60; width:250px;
+      padding-top:calc(22px + env(safe-area-inset-top)); padding-bottom:calc(22px + env(safe-area-inset-bottom));
       transform:translateX(-105%); transition:transform .22s ease;
     }
     .sidebar.open{ transform:translateX(0); box-shadow:8px 0 24px rgba(0,0,0,.4); }
@@ -223,10 +235,27 @@
     }
     .sidebar-overlay.open{ opacity:1; pointer-events:auto; }
 
-    .main{ padding:16px 14px 40px; }
+    .main{ padding:16px 14px calc(40px + env(safe-area-inset-bottom)); }
     .kpis, .row-a, .row-b, .split-forms{ grid-template-columns:1fr; }
     .rings{ grid-template-columns:repeat(3,1fr); }
-    .orc-row{ grid-template-columns:1fr; gap:6px; }
+
+    /* Orçamento: esconde cabeçalho de colunas e mostra rótulos inline */
+    .orc-row{ grid-template-columns:1fr; gap:4px; padding:12px 0; }
+    .orc-row .status{ text-align:left; }
+    .card > .orc-row:first-child{ display:none; } /* cabeçalho de colunas */
+    .mobile-label{ display:inline-block; color:var(--muted); font-size:10.5px; font-weight:700; text-transform:uppercase;
+      letter-spacing:.03em; width:78px; flex-shrink:0; }
+    .orc-row > div{ display:flex; align-items:center; gap:8px; }
+
+    /* Áreas de toque maiores */
+    .nav-btn{ padding:12px 10px; font-size:14px; }
+    .month-btn{ padding:12px 4px; font-size:12.5px; }
+    .chip{ padding:10px 0; }
+    .btn{ padding:11px 16px; }
+    .btn.danger-ghost{ padding:8px 10px; font-size:17px; }
+
+    /* Evita zoom automático do iOS ao focar em campos (exige fonte >=16px) */
+    .field input, .field select, .orc-input, .year-add-row input, .brand-edit-row input{ font-size:16px; }
   }
 </style>
 </head>
@@ -755,7 +784,7 @@ function renderLancamentos(){
   if(lancFilter==='receita') rows = rows.filter(t=>t.valor>=0);
   if(lancFilter==='despesa') rows = rows.filter(t=>t.valor<0);
   if(!rows.length){ wrap.innerHTML = '<div class="empty">Nenhum lançamento neste filtro.</div>'; return; }
-  wrap.innerHTML = `<table class="data"><thead><tr>
+  wrap.innerHTML = `<div class="table-scroll"><table class="data"><thead><tr>
     <th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Conta</th><th style="text-align:right;">Valor</th><th></th>
   </tr></thead><tbody>${rows.map(t=>{
     const cat = categorize(t.desc); const tipo = t.valor>=0?'Receita':'Despesa';
@@ -769,7 +798,7 @@ function renderLancamentos(){
       <td style="text-align:right;" class="num">${fmt(t.valor)}</td>
       <td><button class="btn danger-ghost" onclick="deleteTransacao(${t.id})">×</button></td>
     </tr>`;
-  }).join('')}</tbody></table>`;
+  }).join('')}</tbody></table></div>`;
 }
 function addReceita(){
   const data = document.getElementById('rData').value;
@@ -818,10 +847,10 @@ function renderOrcamento(){
     const st = budgetStatus(orcado, gasto);
     return `<div class="orc-row">
       <div><span class="badge-cat"><span class="sw" style="background:${colorFor(c)}"></span>${c}</span></div>
-      <div><input class="orc-input" type="number" step="1" value="${orcado}" onchange="updateOrcamento('${c.replace(/'/g,"\\'")}', this.value)"></div>
-      <div class="num">${fmt0(gasto)}</div>
-      <div class="num">${pct}%</div>
-      <div class="status" style="color:${st.color}">${st.label}</div>
+      <div><span class="mobile-label">Orçado</span><input class="orc-input" type="number" step="1" value="${orcado}" onchange="updateOrcamento('${c.replace(/'/g,"\\'")}', this.value)"></div>
+      <div><span class="mobile-label">Gasto real</span><span class="num">${fmt0(gasto)}</span></div>
+      <div><span class="mobile-label">% usado</span><span class="num">${pct}%</span></div>
+      <div class="status" style="color:${st.color}"><span class="mobile-label">Status</span>${st.label}</div>
     </div>`;
   }).join('');
 }
@@ -856,12 +885,12 @@ function renderInvestimentos(){
     </tr>`;
   }).join('');
   const rentTotal = totalInv? (totalAtual/totalInv-1)*100 : 0;
-  wrap.innerHTML = `<table class="data"><thead><tr>
+  wrap.innerHTML = `<div class="table-scroll"><table class="data"><thead><tr>
     <th>Ativo</th><th>Tipo</th><th>Investido</th><th>Atual</th><th>Rentabilidade</th><th>Data</th><th></th>
   </tr></thead><tbody>${rows}
   <tr style="font-weight:700;"><td>TOTAL</td><td></td><td class="num">${fmt(totalInv)}</td><td class="num">${fmt(totalAtual)}</td>
   <td class="num" style="color:${rentTotal>=0?'var(--green)':'var(--coral)'}">${rentTotal>=0?'+':''}${rentTotal.toFixed(1)}%</td><td></td><td></td></tr>
-  </tbody></table>`;
+  </tbody></table></div>`;
 }
 function addInvestimento(){
   const ativo = document.getElementById('iAtivo').value.trim();
@@ -884,13 +913,13 @@ function deleteInvestimento(id){
 function renderCategorias(){
   const wrap = document.getElementById('catTableWrap');
   if(!db.categorias.length){ wrap.innerHTML = '<div class="empty">Nenhuma palavra-chave cadastrada.</div>'; return; }
-  wrap.innerHTML = `<table class="data"><thead><tr><th>Palavra-chave</th><th>Categoria</th><th></th></tr></thead><tbody>
+  wrap.innerHTML = `<div class="table-scroll"><table class="data"><thead><tr><th>Palavra-chave</th><th>Categoria</th><th></th></tr></thead><tbody>
     ${db.categorias.map((c,idx)=>`<tr>
       <td>${c.kw}</td>
       <td><span class="badge-cat"><span class="sw" style="background:${colorFor(c.cat)}"></span>${c.cat}</span></td>
       <td><button class="btn danger-ghost" onclick="deleteCategoriaKw(${idx})">×</button></td>
     </tr>`).join('')}
-  </tbody></table>`;
+  </tbody></table></div>`;
 }
 function addCategoriaKw(){
   const kw = document.getElementById('cKw').value.trim().toLowerCase();
@@ -936,6 +965,10 @@ renderNav();
 renderBrand();
 buildSidebarPeriod();
 renderView();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
 
 /* =========================================================
    MARCA (logo + nome + descrição editáveis)
