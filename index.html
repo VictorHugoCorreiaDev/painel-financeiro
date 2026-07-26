@@ -16,6 +16,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
 <style>
   :root{
     --bg:#0D1326; --panel:#151D38; --panel-2:#1B2444; --panel-3:#202B52; --border:#28315A;
@@ -196,6 +197,21 @@
   #appLoading.error .spinner, #appLoading.error .txt{ display:none; }
   #appLoading.error .err-box{ display:flex; }
 
+  #loginScreen{ position:fixed; inset:0; background:var(--bg); z-index:250;
+    display:flex; align-items:center; justify-content:center; padding:20px; }
+  #loginScreen.hidden{ display:none; }
+  .login-card{ width:100%; max-width:340px; background:var(--panel); border:1px solid var(--border);
+    border-radius:16px; padding:28px 24px; display:flex; flex-direction:column; gap:14px; }
+  .login-mark{ width:44px;height:44px;border-radius:12px; margin:0 auto 4px;
+    background:linear-gradient(135deg, #0D1326 0%, #1B2A6B 32%, #3A63C8 60%, #3FC1C9 82%, #7C83FD 100%); }
+  .login-card h2{ text-align:center; font-size:18px; margin-bottom:2px; }
+  .login-card .field label{ font-size:11.5px; }
+  .login-card .field input{ width:100%; font-size:15px; padding:10px 12px; }
+  .login-card .btn{ margin-top:4px; }
+  .login-error{ color:var(--coral); font-size:12.5px; text-align:center; min-height:16px; }
+  .login-forgot{ text-align:center; color:var(--muted); font-size:12px; text-decoration:none; }
+  .login-forgot:hover{ color:var(--amber); }
+
   /* Inputs numéricos: remove as setinhas feias do navegador */
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
@@ -289,7 +305,7 @@
     .btn.danger-ghost{ padding:8px 10px; font-size:17px; }
 
     /* Evita zoom automático do iOS ao focar em campos (exige fonte >=16px) */
-    .field input, .field select, .orc-input, .year-add-row input, .brand-edit-row input{ font-size:16px; }
+    .field input, .field select, .orc-input, .year-add-row input, .brand-edit-row input, .login-card input{ font-size:16px; }
   }
 </style>
 </head>
@@ -302,6 +318,17 @@
     <div style="color:var(--text); font-size:13.5px; font-weight:600;">Não foi possível carregar o app</div>
     <div style="color:var(--muted); font-size:12px;" id="appErrorMsg">Verifique sua conexão e tente novamente.</div>
     <button class="btn" onclick="location.reload()">Recarregar</button>
+  </div>
+</div>
+<div id="loginScreen" class="hidden">
+  <div class="login-card">
+    <div class="login-mark"></div>
+    <h2>Entrar</h2>
+    <div class="field"><label>E-mail</label><input type="email" id="loginEmail" autocomplete="username" placeholder="seu@email.com"></div>
+    <div class="field"><label>Senha</label><input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••"></div>
+    <button class="btn" id="loginBtn" style="width:100%;">Entrar</button>
+    <div class="login-error" id="loginError"></div>
+    <a href="#" id="forgotPasswordLink" class="login-forgot">Esqueci minha senha</a>
   </div>
 </div>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -489,6 +516,11 @@
 
     <section class="view" id="view-config">
       <div class="topbar"><h2>Configurações</h2><div class="period"></div></div>
+      <div class="card" style="max-width:420px;">
+        <h3>Conta</h3>
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px;" id="loggedInAs"></div>
+        <button class="btn secondary" onclick="handleLogout()">Sair</button>
+      </div>
       <div class="card" style="max-width:420px;">
         <div class="form-row" style="flex-direction:column; align-items:stretch;">
           <div class="field"><label>Meta de economia mensal (R$)</label><input type="number" step="1" id="cfgMeta"></div>
@@ -1099,11 +1131,19 @@ function deleteCategoriaKw(idx){
 function renderConfig(){
   document.getElementById('cfgMeta').value = db.config.metaEconomia;
   document.getElementById('cfgNome').value = db.config.nome;
+  const loggedEl = document.getElementById('loggedInAs');
+  if(loggedEl){
+    const user = firebase.auth().currentUser;
+    loggedEl.textContent = user ? ('Logado como: ' + user.email) : '';
+  }
   if(syncCfg && syncCfg.firebaseConfig){
     document.getElementById('syncConfigInput').value = JSON.stringify(syncCfg.firebaseConfig, null, 2);
     document.getElementById('syncCodigoInput').value = syncCfg.codigo || '';
     setSyncStatus(firestoreDocRef ? ('Conectado ✓ — código: ' + syncCfg.codigo) : 'Configurado — reconectando...', !!firestoreDocRef);
   }
+}
+function handleLogout(){
+  firebase.auth().signOut();
 }
 function saveConfig(){
   db.config.metaEconomia = parseFloat(document.getElementById('cfgMeta').value)||0;
@@ -1127,35 +1167,91 @@ function importarDados(ev){
   reader.readAsText(file);
 }
 
+function showInitError(err){
+  console.error(err);
+  const loading = document.getElementById('appLoading');
+  if(loading){
+    loading.classList.add('error');
+    const msg = document.getElementById('appErrorMsg');
+    if(msg) msg.textContent = (err && err.message) ? err.message : 'Erro desconhecido ao iniciar o app.';
+  }
+}
+function translateAuthError(code){
+  const map = {
+    'auth/invalid-email':'E-mail inválido.',
+    'auth/user-disabled':'Usuário desativado.',
+    'auth/user-not-found':'E-mail ou senha incorretos.',
+    'auth/wrong-password':'E-mail ou senha incorretos.',
+    'auth/invalid-credential':'E-mail ou senha incorretos.',
+    'auth/missing-password':'Digite sua senha.',
+    'auth/operation-not-allowed':'Login por e-mail/senha ainda não está habilitado no Firebase (ative em Authentication → Sign-in method).',
+    'auth/configuration-not-found':'A Autenticação ainda não foi configurada no projeto Firebase (ative em Authentication → Sign-in method → E-mail/senha).',
+    'auth/too-many-requests':'Muitas tentativas. Tente novamente mais tarde.',
+    'auth/network-request-failed':'Falha de conexão. Verifique sua internet.'
+  };
+  return map[code] || 'Não foi possível entrar. Tente novamente.';
+}
+function setupLoginUI(auth){
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  const emailEl = document.getElementById('loginEmail');
+  const passEl = document.getElementById('loginPassword');
+  const doLogin = ()=>{
+    errEl.style.color = 'var(--coral)';
+    errEl.textContent = '';
+    const email = emailEl.value.trim();
+    const pass = passEl.value;
+    if(!email || !pass){ errEl.textContent = 'Preencha e-mail e senha.'; return; }
+    btn.disabled = true; btn.textContent = 'Entrando...';
+    auth.signInWithEmailAndPassword(email, pass)
+      .catch(err=>{ errEl.textContent = translateAuthError(err.code); })
+      .finally(()=>{ btn.disabled = false; btn.textContent = 'Entrar'; });
+  };
+  btn.onclick = doLogin;
+  passEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  emailEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  document.getElementById('forgotPasswordLink').addEventListener('click', e=>{
+    e.preventDefault();
+    const email = emailEl.value.trim();
+    if(!email){ errEl.style.color = 'var(--coral)'; errEl.textContent = 'Digite seu e-mail acima e clique de novo.'; return; }
+    auth.sendPasswordResetEmail(email)
+      .then(()=>{ errEl.style.color = 'var(--green)'; errEl.textContent = 'E-mail de redefinição enviado.'; })
+      .catch(err=>{ errEl.style.color = 'var(--coral)'; errEl.textContent = translateAuthError(err.code); });
+  });
+}
 function initApp(){
   try{
     Chart.defaults.resizeDelay = 100;
     Chart.defaults.font.family = "'Inter'";
 
-    renderNav();
-    renderBrand();
-    buildSidebarPeriod();
-    renderView();
+    const fbApp = firebase.apps && firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(syncCfg.firebaseConfig);
+    const auth = firebase.auth(fbApp);
+    setupLoginUI(auth);
 
-    if(syncCfg && syncCfg.firebaseConfig && syncCfg.codigo){
-      connectSync(syncCfg.firebaseConfig, syncCfg.codigo);
-    }
+    auth.onAuthStateChanged(user=>{
+      try{
+        const loginScreen = document.getElementById('loginScreen');
+        if(user){
+          if(loginScreen) loginScreen.classList.add('hidden');
+          renderNav();
+          renderBrand();
+          buildSidebarPeriod();
+          renderView();
+          if(syncCfg && syncCfg.firebaseConfig && syncCfg.codigo){
+            connectSync(syncCfg.firebaseConfig, syncCfg.codigo);
+          }
+        } else {
+          if(loginScreen) loginScreen.classList.remove('hidden');
+        }
+        const loading = document.getElementById('appLoading');
+        if(loading) loading.classList.add('hidden');
+      }catch(err){ showInitError(err); }
+    });
 
     if('serviceWorker' in navigator){
       window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
     }
-
-    const loading = document.getElementById('appLoading');
-    if(loading) loading.classList.add('hidden');
-  }catch(err){
-    console.error(err);
-    const loading = document.getElementById('appLoading');
-    if(loading){
-      loading.classList.add('error');
-      const msg = document.getElementById('appErrorMsg');
-      if(msg) msg.textContent = (err && err.message) ? err.message : 'Erro desconhecido ao iniciar o app.';
-    }
-  }
+  }catch(err){ showInitError(err); }
 }
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded', initApp);
