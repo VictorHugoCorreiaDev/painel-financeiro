@@ -1065,14 +1065,25 @@ function budgetStatus(orcado, gasto){
   if(gasto>=orcado*0.85) return {label:'🟡 Atenção', color:'var(--amber)'};
   return {label:'🟢 OK', color:'var(--green)'};
 }
+function budgetGasto(year, month, cat){
+  const catLower = cat.toLowerCase();
+  let total = 0;
+  db.transacoes.forEach(t=>{
+    const [y,m] = t.data.split('-').map(Number);
+    if(y!==year || (m-1)!==month || t.valor>=0) return;
+    const mesmaCategoria = categorize(t.desc)===cat;
+    const contaMenciona = (t.conta||'').toLowerCase().includes(catLower);
+    if(mesmaCategoria || contaMenciona) total += -t.valor;
+  });
+  return total;
+}
 function renderOrcamento(){
-  const agg = monthlyAgg(state.year)[state.month];
   const wrap = document.getElementById('orcTableWrap');
   const cats = allCategoryNames().sort();
   if(!cats.length){ wrap.innerHTML='<div class="empty">Nenhuma categoria cadastrada.</div>'; return; }
   wrap.innerHTML = cats.map(c=>{
     const orcado = db.orcamentos[c]||0;
-    const gasto = agg.porCategoria[c]||0;
+    const gasto = budgetGasto(state.year, state.month, c);
     const pct = orcado ? Math.round(gasto/orcado*100) : 0;
     const st = budgetStatus(orcado, gasto);
     return `<div class="orc-row">
