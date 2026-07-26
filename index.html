@@ -184,6 +184,9 @@
   .orc-input{ background:var(--panel-2); border:1px solid var(--border); border-radius:7px; color:var(--text);
     padding:6px 8px; font-size:13px; width:100%; font-family:'IBM Plex Mono'; }
 
+  .cf-row{ display:grid; grid-template-columns:1.2fr 1fr 70px 110px 1.5fr; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
+  .cf-row .status{ font-size:12px; font-weight:700; text-align:right; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+
   .empty{ color:var(--muted); font-size:13px; padding:18px 0; text-align:center; }
 
   #appLoading{ position:fixed; inset:0; background:var(--bg); z-index:300;
@@ -297,6 +300,11 @@
     .mobile-label{ display:inline-block; color:var(--muted); font-size:10.5px; font-weight:700; text-transform:uppercase;
       letter-spacing:.03em; width:82px; flex-shrink:0; }
 
+    .cf-header{ display:none; }
+    .cf-row{ grid-template-columns:1fr; gap:6px; padding:14px 0; }
+    .cf-row .status{ justify-content:flex-start; }
+    .cf-row > div{ display:flex; align-items:center; gap:8px; }
+
     /* Áreas de toque maiores */
     .nav-btn{ padding:12px 10px; font-size:14px; }
     .month-btn{ padding:12px 4px; font-size:12.5px; }
@@ -361,6 +369,7 @@
         <button class="nav-btn" data-view="painel"><span class="ic">📊</span>Painel</button>
         <button class="nav-btn" data-view="lancamentos"><span class="ic">💳</span>Lançamentos</button>
         <button class="nav-btn" data-view="orcamento"><span class="ic">🗂️</span>Orçamento</button>
+        <button class="nav-btn" data-view="contasfixas"><span class="ic">📌</span>Contas Fixas</button>
         <button class="nav-btn" data-view="investimentos"><span class="ic">📈</span>Investimentos</button>
         <button class="nav-btn" data-view="categorias"><span class="ic">🏷️</span>Categorias</button>
         <button class="nav-btn" data-view="config"><span class="ic">⚙️</span>Config</button>
@@ -490,6 +499,24 @@
       </div>
     </section>
 
+    <section class="view" id="view-contasfixas">
+      <div class="topbar"><h2>Contas Fixas</h2><div class="period" id="periodLabelCF">—</div></div>
+      <div class="card">
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:14px;">Cadastre contas recorrentes (aluguel, internet, luz...). O status "Paga" é detectado automaticamente quando existe um lançamento do mês batendo com o nome da conta.</div>
+        <div class="form-row">
+          <div class="field"><label>Nome da conta</label><input type="text" id="cfNome" placeholder="Ex: Aluguel"></div>
+          <div class="field"><label>Categoria</label><select id="cfCategoria"><option value="">Categoria...</option></select></div>
+          <div class="field"><label>Valor esperado (R$)</label><input type="number" step="0.01" min="0" id="cfValor" placeholder="1500.00"></div>
+          <div class="field" style="max-width:110px;"><label>Dia venc.</label><input type="number" step="1" min="1" max="31" id="cfDia" placeholder="5"></div>
+          <button class="btn" onclick="addContaFixa()">+ Adicionar</button>
+        </div>
+        <div class="cf-row cf-header" style="border-bottom:1px solid var(--border); font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">
+          <div>Conta</div><div>Categoria</div><div>Venc.</div><div>Valor</div><div style="text-align:right;">Status</div>
+        </div>
+        <div id="contasFixasWrap"></div>
+      </div>
+    </section>
+
     <section class="view" id="view-investimentos">
       <div class="topbar"><h2>Investimentos</h2><div class="period"></div></div>
       <div class="card">
@@ -615,6 +642,10 @@ function defaultDB(){
       {id:1, ativo:'Tesouro Selic 2029', tipo:'Renda Fixa', investido:3000, atual:3120, data:'2026-02-10'},
       {id:2, ativo:'Fundo Imobiliário XYZ11', tipo:'Fundo Imobiliário', investido:2000, atual:2080, data:'2026-03-05'},
       {id:3, ativo:'Ações ABCD3', tipo:'Renda Variável', investido:1500, atual:1390, data:'2026-04-20'}
+    ],
+    contasFixas: [
+      {id:1, nome:'Aluguel', categoria:'Moradia', valorEsperado:1500, diaVencimento:5},
+      {id:2, nome:'Internet', categoria:'Contas de Casa', valorEsperado:120, diaVencimento:10}
     ]
   };
 }
@@ -707,6 +738,7 @@ function subscribeSync(){
     if(!remote || !remote.payload || remote.updatedBy===deviceId) return;
     applyingRemote = true;
     db = remote.payload;
+    migrateDB();
     saveDB();
     applyingRemote = false;
     buildSidebarPeriod(); renderNav(); renderBrand(); renderView();
@@ -717,10 +749,14 @@ function pushToFirestore(){
   if(!firestoreDocRef || applyingRemote) return;
   firestoreDocRef.set({ payload: db, updatedAt: Date.now(), updatedBy: deviceId }).catch(()=>{});
 }
-db.anosExtras = db.anosExtras || [];
-db.config.tituloApp = db.config.tituloApp || 'Painel';
-db.config.subtitulo = db.config.subtitulo || 'Finanças Pessoais';
-db.config.logoDataUrl = db.config.logoDataUrl || null;
+function migrateDB(){
+  db.anosExtras = db.anosExtras || [];
+  db.config.tituloApp = db.config.tituloApp || 'Painel';
+  db.config.subtitulo = db.config.subtitulo || 'Finanças Pessoais';
+  db.config.logoDataUrl = db.config.logoDataUrl || null;
+  db.contasFixas = db.contasFixas || [];
+}
+migrateDB();
 function nextId(arr){ return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
 
 function categorize(desc){
@@ -847,12 +883,14 @@ function renderPeriodUI(){
   const label = `${MONTHS[state.month].toUpperCase()} ${state.year}`;
   const pl = document.getElementById('periodLabel'); if(pl) pl.textContent = label;
   const pl2 = document.getElementById('periodLabelOrc'); if(pl2) pl2.textContent = label;
+  const pl3 = document.getElementById('periodLabelCF'); if(pl3) pl3.textContent = label;
 }
 
 function renderView(){
   if(state.view==='painel') renderPainel();
   else if(state.view==='lancamentos') renderLancamentos();
   else if(state.view==='orcamento') renderOrcamento();
+  else if(state.view==='contasfixas') renderContasFixas();
   else if(state.view==='investimentos') renderInvestimentos();
   else if(state.view==='categorias') renderCategorias();
   else if(state.view==='config') renderConfig();
@@ -1200,6 +1238,71 @@ function addOrcamentoCat(){
   renderOrcamento();
 }
 
+function contaFixaTransacao(cf, year, month){
+  return db.transacoes.find(t=>{
+    if(t.valor>=0) return false;
+    const [y,m] = t.data.split('-').map(Number);
+    if(y!==year || (m-1)!==month) return false;
+    return t.desc.toLowerCase().includes(cf.nome.toLowerCase());
+  });
+}
+function renderContasFixas(){
+  const wrap = document.getElementById('contasFixasWrap');
+  const catSelect = document.getElementById('cfCategoria');
+  if(catSelect){
+    const cats = allCategoryNames().sort();
+    catSelect.innerHTML = '<option value="">Categoria...</option>' + cats.map(c=>`<option value="${escAttr(c)}">${c}</option>`).join('');
+  }
+  if(!db.contasFixas.length){ wrap.innerHTML = '<div class="empty">Nenhuma conta fixa cadastrada.</div>'; return; }
+  wrap.innerHTML = db.contasFixas.map(cf=>{
+    const trans = contaFixaTransacao(cf, state.year, state.month);
+    const paga = !!trans;
+    return `<div class="cf-row">
+      <div><span class="badge-cat"><span class="sw" style="background:${colorFor(cf.categoria)}"></span>${cf.nome}</span></div>
+      <div><span class="mobile-label">Categoria</span>${cf.categoria}</div>
+      <div><span class="mobile-label">Venc.</span>dia ${cf.diaVencimento}</div>
+      <div><span class="mobile-label">Valor</span><span class="num">${fmt(cf.valorEsperado)}</span></div>
+      <div class="status" style="color:${paga?'var(--green)':'var(--coral)'}">
+        <span class="mobile-label">Status</span>
+        ${paga
+          ? `🟢 Paga <span class="num" style="color:var(--muted); font-weight:400; font-size:11px;">(${fmt(trans.valor)})</span>`
+          : `🔴 Pendente <button class="btn" style="padding:4px 10px; font-size:11px;" onclick="marcarContaFixaPaga(${cf.id})">Marcar como paga</button>`}
+        <button class="btn danger-ghost" onclick="deleteContaFixa(${cf.id})" title="Excluir conta fixa">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function addContaFixa(){
+  const nome = document.getElementById('cfNome').value.trim();
+  const categoria = document.getElementById('cfCategoria').value;
+  const valorEsperado = parseFloat(document.getElementById('cfValor').value);
+  const diaVencimento = parseInt(document.getElementById('cfDia').value, 10);
+  if(!nome || !categoria || isNaN(valorEsperado) || valorEsperado<0 || !diaVencimento || diaVencimento<1 || diaVencimento>31){
+    alert('Preencha nome, categoria, valor e um dia de vencimento válido (1-31).'); return;
+  }
+  db.contasFixas.push({ id:nextId(db.contasFixas), nome, categoria, valorEsperado, diaVencimento });
+  saveDB();
+  document.getElementById('cfNome').value=''; document.getElementById('cfValor').value=''; document.getElementById('cfDia').value='';
+  renderContasFixas();
+}
+function deleteContaFixa(id){
+  db.contasFixas = db.contasFixas.filter(c=>c.id!==id);
+  saveDB(); renderContasFixas();
+}
+function marcarContaFixaPaga(id){
+  const cf = db.contasFixas.find(c=>c.id===id);
+  if(!cf) return;
+  const year = state.year, month = state.month;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const dia = Math.min(cf.diaVencimento||1, daysInMonth);
+  const data = `${year}-${String(month+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+  db.transacoes.push({ id:nextId(db.transacoes), data, desc:cf.nome, valor:-Math.abs(cf.valorEsperado), conta:'' });
+  saveDB();
+  renderContasFixas();
+  buildSidebarPeriod();
+  if(state.view==='painel') renderPainel();
+}
+
 function renderInvestimentos(){
   const wrap = document.getElementById('invTableWrap');
   if(!db.investimentos.length){ wrap.innerHTML = '<div class="empty">Nenhum investimento ainda.</div>'; return; }
@@ -1300,7 +1403,7 @@ function importarDados(ev){
   const file = ev.target.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = e=>{
-    try{ const parsed = JSON.parse(e.target.result); db = parsed; saveDB(); buildSidebarPeriod(); renderView(); alert('Dados importados.'); }
+    try{ const parsed = JSON.parse(e.target.result); db = parsed; migrateDB(); saveDB(); buildSidebarPeriod(); renderView(); alert('Dados importados.'); }
     catch(err){ alert('Arquivo inválido.'); }
   };
   reader.readAsText(file);
