@@ -454,8 +454,9 @@
           <div class="form-row">
             <div class="field"><label>Data</label><input type="date" id="dData"></div>
             <div class="field"><label>Descrição</label><input type="text" id="dDesc" placeholder="Ex: Mercado da semana"></div>
-            <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" min="0" id="dValor" placeholder="150.00"></div>
+            <div class="field"><label>Valor da parcela (R$)</label><input type="number" step="0.01" min="0" id="dValor" placeholder="150.00"></div>
             <div class="field"><label>Conta</label><input type="text" id="dConta" placeholder="Cartão, Pix..."></div>
+            <div class="field" style="max-width:110px;"><label>Parcelas</label><input type="number" step="1" min="1" id="dParcelas" placeholder="1"></div>
             <button class="btn expense-btn" onclick="addDespesa()">+ Despesa</button>
           </div>
         </div>
@@ -1042,15 +1043,30 @@ function addReceita(){
   renderLancamentos(); buildSidebarPeriod();
   if(state.view==='painel') renderPainel();
 }
+function addMonthsClamped(dateStr, n){
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const idx = (m-1) + n;
+  const targetYear = y + Math.floor(idx/12);
+  const targetMonth = ((idx%12)+12)%12;
+  const daysInTargetMonth = new Date(targetYear, targetMonth+1, 0).getDate();
+  const day = Math.min(d, daysInTargetMonth);
+  return `${targetYear}-${String(targetMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+}
 function addDespesa(){
   const data = document.getElementById('dData').value;
   const desc = document.getElementById('dDesc').value.trim();
   const valorAbs = parseFloat(document.getElementById('dValor').value);
   const conta = document.getElementById('dConta').value.trim();
+  const parcelasRaw = parseInt(document.getElementById('dParcelas').value, 10);
+  const parcelas = (parcelasRaw && parcelasRaw>1) ? parcelasRaw : 1;
   if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ alert('Preencha data, descrição e um valor válido.'); return; }
-  db.transacoes.push({ id:nextId(db.transacoes), data, desc, valor:-Math.abs(valorAbs), conta });
+  for(let i=0; i<parcelas; i++){
+    const dataParcela = i===0 ? data : addMonthsClamped(data, i);
+    const descParcela = parcelas>1 ? `${desc} (${i+1}/${parcelas})` : desc;
+    db.transacoes.push({ id:nextId(db.transacoes), data:dataParcela, desc:descParcela, valor:-Math.abs(valorAbs), conta });
+  }
   saveDB();
-  document.getElementById('dDesc').value=''; document.getElementById('dValor').value=''; document.getElementById('dConta').value='';
+  document.getElementById('dDesc').value=''; document.getElementById('dValor').value=''; document.getElementById('dConta').value=''; document.getElementById('dParcelas').value='';
   renderLancamentos(); buildSidebarPeriod();
   if(state.view==='painel') renderPainel();
 }
