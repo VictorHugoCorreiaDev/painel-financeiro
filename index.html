@@ -964,9 +964,11 @@ function renderPainel(){
 }
 
 let lancFilter = 'todos';
+let editingLancId = null;
 document.querySelectorAll('#lancFilter .filter-tab').forEach(b=>{
-  b.onclick = ()=>{ lancFilter=b.dataset.f; document.querySelectorAll('#lancFilter .filter-tab').forEach(x=>x.classList.toggle('active', x===b)); renderLancamentos(); };
+  b.onclick = ()=>{ lancFilter=b.dataset.f; editingLancId=null; document.querySelectorAll('#lancFilter .filter-tab').forEach(x=>x.classList.toggle('active', x===b)); renderLancamentos(); };
 });
+function escAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
 
 function renderLancamentos(){
   const wrap = document.getElementById('lancTableWrap');
@@ -979,6 +981,23 @@ function renderLancamentos(){
   </tr></thead><tbody>${rows.map(t=>{
     const cat = categorize(t.desc); const tipo = t.valor>=0?'Receita':'Despesa';
     const [y,m,d] = t.data.split('-');
+    if(t.id===editingLancId){
+      return `<tr>
+        <td><input type="date" class="orc-input" id="editData_${t.id}" value="${t.data}"></td>
+        <td><input type="text" class="orc-input" id="editDesc_${t.id}" value="${escAttr(t.desc)}"></td>
+        <td><span class="badge-cat"><span class="sw" style="background:${colorFor(cat)}"></span>${cat}</span></td>
+        <td><select class="orc-input" id="editTipo_${t.id}">
+              <option value="receita" ${t.valor>=0?'selected':''}>Receita</option>
+              <option value="despesa" ${t.valor<0?'selected':''}>Despesa</option>
+            </select></td>
+        <td><input type="text" class="orc-input" id="editConta_${t.id}" value="${escAttr(t.conta)}"></td>
+        <td><input type="number" step="0.01" min="0" class="orc-input" id="editValor_${t.id}" value="${Math.abs(t.valor)}" style="text-align:right;"></td>
+        <td style="white-space:nowrap;">
+          <button class="btn danger-ghost" style="color:var(--green);" onclick="saveEditTransacao(${t.id})" title="Salvar">✓</button>
+          <button class="btn danger-ghost" onclick="cancelEditTransacao()" title="Cancelar">✕</button>
+        </td>
+      </tr>`;
+    }
     return `<tr>
       <td class="num">${d}/${m}/${y}</td>
       <td>${t.desc}</td>
@@ -986,9 +1005,30 @@ function renderLancamentos(){
       <td><span class="pill ${tipo==='Receita'?'receita':'despesa'}">${tipo}</span></td>
       <td>${t.conta||'—'}</td>
       <td style="text-align:right;" class="num">${fmt(t.valor)}</td>
-      <td><button class="btn danger-ghost" onclick="deleteTransacao(${t.id})">×</button></td>
+      <td style="white-space:nowrap;">
+        <button class="btn danger-ghost" onclick="startEditTransacao(${t.id})" title="Editar">✎</button>
+        <button class="btn danger-ghost" onclick="deleteTransacao(${t.id})" title="Excluir">×</button>
+      </td>
     </tr>`;
   }).join('')}</tbody></table></div>`;
+}
+function startEditTransacao(id){ editingLancId = id; renderLancamentos(); }
+function cancelEditTransacao(){ editingLancId = null; renderLancamentos(); }
+function saveEditTransacao(id){
+  const data = document.getElementById('editData_'+id).value;
+  const desc = document.getElementById('editDesc_'+id).value.trim();
+  const valorAbs = parseFloat(document.getElementById('editValor_'+id).value);
+  const conta = document.getElementById('editConta_'+id).value.trim();
+  const tipo = document.getElementById('editTipo_'+id).value;
+  if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ alert('Preencha data, descrição e um valor válido.'); return; }
+  const t = db.transacoes.find(x=>x.id===id);
+  if(!t) return;
+  t.data = data; t.desc = desc; t.conta = conta;
+  t.valor = tipo==='despesa' ? -Math.abs(valorAbs) : Math.abs(valorAbs);
+  saveDB();
+  editingLancId = null;
+  renderLancamentos(); buildSidebarPeriod();
+  if(state.view==='painel') renderPainel();
 }
 function addReceita(){
   const data = document.getElementById('rData').value;
