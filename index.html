@@ -529,9 +529,6 @@
 </div>
 
 <script>
-Chart.defaults.resizeDelay = 100;
-Chart.defaults.font.family = "'Inter'";
-
 const STORAGE_KEY = 'painel_financeiro_db_v1';
 const CAT_PALETTE = ["#E8A33D","#3FC1C9","#7C83FD","#E8636B","#B47EE5","#5BD97A","#F2C14E","#FF8FB1","#4FA8E0","#C98F5E","#8C93B8","#6FE3D0","#F28C4E"];
 function colorFor(cat){
@@ -1113,6 +1110,9 @@ function importarDados(ev){
 
 function initApp(){
   try{
+    Chart.defaults.resizeDelay = 100;
+    Chart.defaults.font.family = "'Inter'";
+
     renderNav();
     renderBrand();
     buildSidebarPeriod();
