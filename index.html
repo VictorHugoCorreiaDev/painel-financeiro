@@ -869,10 +869,10 @@ function renderPainel(){
   const prev = state.month>0 ? agg[state.month-1] : null;
   const saldo = cur.receita - cur.despesa;
 
-  document.getElementById('saldoValue').textContent = fmt0(saldo);
+  document.getElementById('saldoValue').textContent = fmt(saldo);
   document.getElementById('saldoValue').className = 'kpi-value ' + (saldo>=0?'pos':'neg');
-  document.getElementById('receitaValue').textContent = fmt0(cur.receita);
-  document.getElementById('despesaValue').textContent = fmt0(cur.despesa);
+  document.getElementById('receitaValue').textContent = fmt(cur.receita);
+  document.getElementById('despesaValue').textContent = fmt(cur.despesa);
 
   function delta(id, curV, prevV){
     const el = document.getElementById(id);
@@ -927,7 +927,7 @@ function renderPainel(){
     const maxVal = catsMes[0][1];
     barListEl.innerHTML = catsMes.map(([c,v])=>`<div class="bar-row"><span class="cat">${c}</span>
       <div class="bar-track"><div class="bar-fill" style="width:${(v/maxVal*100).toFixed(0)}%; background:${colorFor(c)}"></div></div>
-      <span class="val">${fmt0(v)}</span></div>`).join('');
+      <span class="val">${fmt(v)}</span></div>`).join('');
   } else { barListEl.innerHTML = '<div class="empty">Nenhum lançamento neste período.</div>'; }
 
   const ringsEl = document.getElementById('rings');
