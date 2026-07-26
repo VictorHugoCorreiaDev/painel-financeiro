@@ -239,13 +239,26 @@
     .kpis, .row-a, .row-b, .split-forms{ grid-template-columns:1fr; }
     .rings{ grid-template-columns:repeat(3,1fr); }
 
-    /* Orçamento: esconde cabeçalho de colunas e mostra rótulos inline */
-    .orc-row{ grid-template-columns:1fr; gap:4px; padding:12px 0; }
+    /* Padroniza cabeçalhos de página: título e período/descrição empilhados */
+    .topbar{ flex-direction:column; align-items:flex-start; gap:3px; margin-bottom:18px; }
+    .topbar .period{ font-size:11.5px; }
+
+    /* Formulários em coluna única, mais espaçados */
+    .form-row{ flex-direction:column; align-items:stretch; gap:12px; }
+    .field{ width:100%; }
+    .field input, .field select{ width:100%; min-width:0; padding:11px 12px; }
+    .entry-card .field{ min-width:0; }
+    .form-row > .btn{ width:100%; margin-top:2px; }
+    .entry-card{ padding:16px 16px 18px; }
+    .card{ padding:16px; }
+
+    /* Orçamento: cabeçalho de colunas escondido de verdade, linhas com rótulo + valor lado a lado */
+    .orc-header{ display:none; }
+    .orc-row{ grid-template-columns:1fr; gap:6px; padding:14px 0; }
     .orc-row .status{ text-align:left; }
-    .card > .orc-row:first-child{ display:none; } /* cabeçalho de colunas */
-    .mobile-label{ display:inline-block; color:var(--muted); font-size:10.5px; font-weight:700; text-transform:uppercase;
-      letter-spacing:.03em; width:78px; flex-shrink:0; }
     .orc-row > div{ display:flex; align-items:center; gap:8px; }
+    .mobile-label{ display:inline-block; color:var(--muted); font-size:10.5px; font-weight:700; text-transform:uppercase;
+      letter-spacing:.03em; width:82px; flex-shrink:0; }
 
     /* Áreas de toque maiores */
     .nav-btn{ padding:12px 10px; font-size:14px; }
@@ -408,7 +421,7 @@
           <div class="field"><label>Orçamento mensal (R$)</label><input type="number" step="1" id="fOrcVal" placeholder="150"></div>
           <button class="btn" onclick="addOrcamentoCat()">+ Adicionar categoria</button>
         </div>
-        <div class="orc-row" style="border-bottom:1px solid var(--border); font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">
+        <div class="orc-row orc-header" style="border-bottom:1px solid var(--border); font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">
           <div>Categoria</div><div>Orçado</div><div>Gasto real</div><div>% usado</div><div style="text-align:right;">Status</div>
         </div>
         <div id="orcTableWrap"></div>
