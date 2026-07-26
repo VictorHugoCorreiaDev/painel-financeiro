@@ -1064,30 +1064,25 @@ function renderLancamentos(){
   if(lancFilter==='parcelados') rows = rows.filter(t=>PARCELA_RE.test(t.desc));
   if(!rows.length){ wrap.innerHTML = '<div class="empty">Nenhum lançamento neste filtro.</div>'; return; }
 
-  let bodyHtml;
-  if(lancFilter==='parcelados'){
-    bodyHtml = rows.map(rowHtml).join('');
-  } else {
-    const groups = {};
-    const items = [];
-    rows.forEach(t=>{
-      const m = t.desc.match(PARCELA_RE);
-      if(!m){ items.push({type:'single', t}); return; }
-      const key = m[1] + '||' + m[3] + '||' + (t.conta||'');
-      if(!groups[key]){ groups[key] = { key, baseDesc:m[1], items:[] }; items.push({type:'group', key}); }
-      groups[key].items.push(t);
-    });
-    bodyHtml = items.map(item=>{
-      if(item.type==='single') return rowHtml(item.t);
-      const group = groups[item.key];
-      if(group.items.length===1) return rowHtml(group.items[0]);
-      let html = groupSummaryHtml(group);
-      if(expandedGroupKeys.has(group.key)){
-        html += group.items.map(rowHtml).join('');
-      }
-      return html;
-    }).join('');
-  }
+  const groups = {};
+  const items = [];
+  rows.forEach(t=>{
+    const m = t.desc.match(PARCELA_RE);
+    if(!m){ items.push({type:'single', t}); return; }
+    const key = m[1] + '||' + m[3] + '||' + (t.conta||'');
+    if(!groups[key]){ groups[key] = { key, baseDesc:m[1], items:[] }; items.push({type:'group', key}); }
+    groups[key].items.push(t);
+  });
+  const bodyHtml = items.map(item=>{
+    if(item.type==='single') return rowHtml(item.t);
+    const group = groups[item.key];
+    if(group.items.length===1) return rowHtml(group.items[0]);
+    let html = groupSummaryHtml(group);
+    if(expandedGroupKeys.has(group.key)){
+      html += group.items.map(rowHtml).join('');
+    }
+    return html;
+  }).join('');
 
   wrap.innerHTML = `<div class="table-scroll"><table class="data"><thead><tr>
     <th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Conta</th><th style="text-align:right;">Valor</th><th></th>
