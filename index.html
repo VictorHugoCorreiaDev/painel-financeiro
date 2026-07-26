@@ -36,8 +36,11 @@
     padding:22px 16px; display:flex; flex-direction:column; gap:22px; position:sticky; top:0; height:100vh; overflow-y:auto; }
   .brand{ display:flex; align-items:center; gap:10px; padding:0 4px; position:relative; }
   .brand-mark{ width:34px;height:34px;border-radius:10px; flex-shrink:0; cursor:pointer; position:relative;
-    background:conic-gradient(from 220deg, var(--amber), var(--coral) 35%, var(--violet) 70%, var(--amber));
+    background:linear-gradient(135deg, #0D1326 0%, #1B2A6B 32%, #3A63C8 60%, #3FC1C9 82%, #7C83FD 100%);
     background-size:cover; background-position:center; overflow:hidden; }
+  .brand-mark::before{ content:"M&V"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-family:'Sora',sans-serif; font-weight:800; font-size:9.5px; letter-spacing:-.3px; }
+  .brand-mark.has-custom-logo::before{ display:none; }
   .brand-mark::after{ content:"✎"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
     background:rgba(13,19,38,.55); color:#fff; font-size:12px; opacity:0; transition:.12s; }
   .brand-mark:hover::after{ opacity:1; }
@@ -1154,8 +1157,8 @@ function renderBrand(){
   document.getElementById('brandTitle').innerHTML = db.config.tituloApp + '<br><span id="brandSubtitle">' + db.config.subtitulo + '</span>';
   const mtTitle = document.querySelector('.mt-title'); if(mtTitle) mtTitle.textContent = db.config.tituloApp;
   const mark = document.getElementById('brandMark');
-  if(db.config.logoDataUrl){ mark.style.backgroundImage = `url(${db.config.logoDataUrl})`; }
-  else{ mark.style.backgroundImage = ''; }
+  if(db.config.logoDataUrl){ mark.style.backgroundImage = `url(${db.config.logoDataUrl})`; mark.classList.add('has-custom-logo'); }
+  else{ mark.style.backgroundImage = ''; mark.classList.remove('has-custom-logo'); }
   document.title = db.config.tituloApp;
 }
 document.getElementById('brandMark').addEventListener('click', ()=> document.getElementById('brandImgInput').click());
