@@ -728,6 +728,9 @@ function categorize(desc){
   for(const {kw,cat} of db.categorias){
     if(kw && d.includes(kw.toLowerCase())) return cat;
   }
+  for(const cat of allCategoryNames()){
+    if(cat && d.includes(cat.toLowerCase())) return cat;
+  }
   return 'Outros';
 }
 function allCategoryNames(){
@@ -985,12 +988,10 @@ function applyCategoriaAtalho(selectId, descId){
   const sel = document.getElementById(selectId);
   const cat = sel.value;
   if(!cat) return;
-  const found = db.categorias.find(c=>c.cat===cat);
-  const kw = found ? found.kw : cat.toLowerCase();
   const descEl = document.getElementById(descId);
   const current = descEl.value.trim();
-  if(!current.toLowerCase().includes(kw.toLowerCase())){
-    descEl.value = current ? `${current} ${kw}` : kw;
+  if(!current.toLowerCase().includes(cat.toLowerCase())){
+    descEl.value = current ? `${current} ${cat}` : cat;
   }
   sel.value = '';
   descEl.focus();
