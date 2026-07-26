@@ -578,6 +578,9 @@ function defaultDB(){
   };
 }
 
+let firestoreDocRef = null;
+let applyingRemote = false;
+
 function loadDB(){
   try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw) return JSON.parse(raw); }catch(e){}
   const d = defaultDB(); saveDB(d); return d;
@@ -593,8 +596,6 @@ function loadSync(){ try{ const raw = localStorage.getItem(SYNC_KEY); if(raw) re
 function saveSyncCfg(s){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(s)); }catch(e){} }
 let syncCfg = loadSync();
 let deviceId = (syncCfg && syncCfg.deviceId) || ('dev-' + Math.random().toString(36).slice(2,10));
-let firestoreDocRef = null;
-let applyingRemote = false;
 let unsubscribeSnapshot = null;
 
 function parseFirebaseConfigText(text){
