@@ -199,7 +199,9 @@
   input[type=number]{ -moz-appearance:textfield; }
 
   /* Inputs de data: recolorir o ícone de calendário pro tema escuro */
-  input[type=date]{ color-scheme:dark; }
+  /* -webkit-min-logical-width evita que o Safari/iOS force uma largura interna
+     maior que o container, estourando o card no mobile */
+  input[type=date]{ color-scheme:dark; width:100%; box-sizing:border-box; -webkit-min-logical-width:0; min-width:0; }
 
   /* Scrollbars customizadas em todo o app */
   *{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
