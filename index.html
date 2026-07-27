@@ -238,8 +238,8 @@
   ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; border:1px solid transparent; background-clip:padding-box; }
   ::-webkit-scrollbar-thumb:hover{ background:var(--amber); }
 
-  .split-forms{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
-  .entry-card{ border-radius:14px; padding:18px 20px; border:1px solid var(--border); }
+  .split-forms{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; margin-bottom:16px; }
+  .entry-card{ border-radius:14px; padding:18px 20px; border:1px solid var(--border); min-width:0; }
   .entry-card.income{ background:linear-gradient(180deg, rgba(91,217,122,.08), var(--panel) 60%); border-color:rgba(91,217,122,.35); }
   .entry-card.expense{ background:linear-gradient(180deg, rgba(232,99,107,.08), var(--panel) 60%); border-color:rgba(232,99,107,.35); }
   .entry-card h3{ display:flex; align-items:center; gap:8px; font-size:14px; margin-bottom:14px; text-transform:none; letter-spacing:0; }
@@ -281,8 +281,9 @@
     }
     .sidebar-overlay.open{ opacity:1; pointer-events:auto; }
 
-    .main{ padding:16px 14px calc(40px + env(safe-area-inset-bottom)); }
-    .kpis, .row-a, .row-b, .split-forms{ grid-template-columns:1fr; }
+    .main{ padding:16px 14px calc(40px + env(safe-area-inset-bottom)); margin:0; max-width:none; width:100%; }
+    .kpis, .row-a, .row-b{ grid-template-columns:1fr; }
+    .split-forms{ grid-template-columns:minmax(0,1fr); }
     .rings{ grid-template-columns:repeat(3,1fr); }
 
     /* Padroniza cabeçalhos de página: título e período/descrição empilhados */
