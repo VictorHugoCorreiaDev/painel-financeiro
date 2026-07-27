@@ -64,7 +64,8 @@
     border:none; background:transparent; color:var(--muted); font-size:13px; font-weight:500; transition:.12s; }
   .nav-btn:hover{ background:var(--panel-2); color:var(--text); }
   .nav-btn.active{ background:var(--panel-3); color:var(--amber); font-weight:700; }
-  .nav-btn .ic{ font-size:15px; width:18px; text-align:center; }
+  .nav-btn .ic{ width:18px; height:18px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; }
+  .nav-btn .ic svg{ width:100%; height:100%; }
 
   .years{ display:flex; gap:6px; flex-wrap:wrap; }
   .chip{ position:relative; flex:1; text-align:center; padding:7px 0; border-radius:8px; border:1px solid var(--border);
@@ -366,13 +367,13 @@
     <div>
       <div class="nav-group-label">Navegação</div>
       <div class="section-nav" id="sectionNav">
-        <button class="nav-btn" data-view="painel"><span class="ic">📊</span>Painel</button>
-        <button class="nav-btn" data-view="lancamentos"><span class="ic">💳</span>Lançamentos</button>
-        <button class="nav-btn" data-view="orcamento"><span class="ic">🗂️</span>Orçamento</button>
-        <button class="nav-btn" data-view="contasfixas"><span class="ic">📌</span>Contas Fixas</button>
-        <button class="nav-btn" data-view="investimentos"><span class="ic">📈</span>Investimentos</button>
-        <button class="nav-btn" data-view="categorias"><span class="ic">🏷️</span>Categorias</button>
-        <button class="nav-btn" data-view="config"><span class="ic">⚙️</span>Config</button>
+        <button class="nav-btn" data-view="painel"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>Painel</button>
+        <button class="nav-btn" data-view="lancamentos"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span>Lançamentos</button>
+        <button class="nav-btn" data-view="orcamento"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span>Orçamento</button>
+        <button class="nav-btn" data-view="contasfixas"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg></span>Contas Fixas</button>
+        <button class="nav-btn" data-view="investimentos"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>Investimentos</button>
+        <button class="nav-btn" data-view="categorias"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>Categorias</button>
+        <button class="nav-btn" data-view="config"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Config</button>
       </div>
     </div>
 
