@@ -454,7 +454,7 @@
             <div class="field"><label>Data</label><input type="date" id="rData"></div>
             <div class="field"><label>Categoria</label><select id="rCat" onchange="applyCategoriaAtalho('rCat','rDesc')"><option value="">Selecionar...</option></select></div>
             <div class="field"><label>Descrição</label><input type="text" id="rDesc" placeholder="Ex: Salário"></div>
-            <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" min="0" id="rValor" placeholder="1500.00"></div>
+            <div class="field"><label>Valor (R$)</label><input type="text" inputmode="decimal" id="rValor" placeholder="1.500,00"></div>
             <div class="field"><label>Conta</label><input type="text" id="rConta" placeholder="Conta, Pix..."></div>
             <button class="btn income-btn" onclick="addReceita()">+ Receita</button>
           </div>
@@ -465,7 +465,7 @@
             <div class="field"><label>Data</label><input type="date" id="dData"></div>
             <div class="field"><label>Categoria</label><select id="dCat" onchange="applyCategoriaAtalho('dCat','dDesc')"><option value="">Selecionar...</option></select></div>
             <div class="field"><label>Descrição</label><input type="text" id="dDesc" placeholder="Ex: Mercado da semana"></div>
-            <div class="field"><label>Valor da parcela (R$)</label><input type="number" step="0.01" min="0" id="dValor" placeholder="150.00"></div>
+            <div class="field"><label>Valor da parcela (R$)</label><input type="text" inputmode="decimal" id="dValor" placeholder="150,00"></div>
             <div class="field"><label>Conta</label><input type="text" id="dConta" placeholder="Cartão, Pix..."></div>
             <div class="field" style="max-width:110px;"><label>Parcelas</label><input type="number" step="1" min="1" id="dParcelas" placeholder="1"></div>
             <button class="btn expense-btn" onclick="addDespesa()">+ Despesa</button>
@@ -489,7 +489,7 @@
       <div class="card">
         <div class="form-row">
           <div class="field" style="min-width:200px;"><label>Nova categoria de orçamento</label><input type="text" id="fOrcCat" placeholder="Ex: Academia"></div>
-          <div class="field"><label>Orçamento mensal (R$)</label><input type="number" step="1" id="fOrcVal" placeholder="150"></div>
+          <div class="field"><label>Orçamento mensal (R$)</label><input type="text" inputmode="decimal" id="fOrcVal" placeholder="150,00"></div>
           <button class="btn" onclick="addOrcamentoCat()">+ Adicionar categoria</button>
         </div>
         <div class="orc-row orc-header" style="border-bottom:1px solid var(--border); font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">
@@ -506,7 +506,7 @@
         <div class="form-row">
           <div class="field"><label>Nome da conta</label><input type="text" id="cfNome" placeholder="Ex: Aluguel"></div>
           <div class="field"><label>Categoria</label><select id="cfCategoria"><option value="">Categoria...</option></select></div>
-          <div class="field"><label>Valor esperado (R$)</label><input type="number" step="0.01" min="0" id="cfValor" placeholder="1500.00"></div>
+          <div class="field"><label>Valor esperado (R$)</label><input type="text" inputmode="decimal" id="cfValor" placeholder="1.500,00"></div>
           <div class="field" style="max-width:110px;"><label>Dia venc.</label><input type="number" step="1" min="1" max="31" id="cfDia" placeholder="5"></div>
           <button class="btn" onclick="addContaFixa()">+ Adicionar</button>
         </div>
@@ -523,8 +523,8 @@
         <div class="form-row">
           <div class="field" style="min-width:170px;"><label>Ativo</label><input type="text" id="iAtivo" placeholder="Tesouro Selic 2029"></div>
           <div class="field"><label>Tipo</label><input type="text" id="iTipo" placeholder="Renda Fixa"></div>
-          <div class="field"><label>Valor investido (R$)</label><input type="number" step="0.01" id="iInvestido"></div>
-          <div class="field"><label>Valor atual (R$)</label><input type="number" step="0.01" id="iAtual"></div>
+          <div class="field"><label>Valor investido (R$)</label><input type="text" inputmode="decimal" id="iInvestido" placeholder="3.000,00"></div>
+          <div class="field"><label>Valor atual (R$)</label><input type="text" inputmode="decimal" id="iAtual" placeholder="3.120,00"></div>
           <div class="field"><label>Data</label><input type="date" id="iData"></div>
           <button class="btn" onclick="addInvestimento()">+ Adicionar</button>
         </div>
@@ -554,7 +554,7 @@
       </div>
       <div class="card" style="max-width:420px;">
         <div class="form-row" style="flex-direction:column; align-items:stretch;">
-          <div class="field"><label>Meta de economia mensal (R$)</label><input type="number" step="1" id="cfgMeta"></div>
+          <div class="field"><label>Meta de economia mensal (R$)</label><input type="text" inputmode="decimal" id="cfgMeta" placeholder="1.000,00"></div>
           <div class="field"><label>Nome (opcional, só exibição local)</label><input type="text" id="cfgNome"></div>
           <button class="btn" onclick="saveConfig()" style="align-self:flex-start;">Salvar</button>
         </div>
@@ -777,6 +777,13 @@ function allCategoryNames(){
 }
 const fmt = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
 const fmt0 = v => 'R$ ' + Math.round(v||0).toLocaleString('pt-BR');
+function formatValorInput(v){ return (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function parseValorBR(str){
+  if(str==null) return NaN;
+  const cleaned = String(str).trim().replace(/[^\d,.-]/g, '');
+  if(!cleaned) return NaN;
+  return parseFloat(cleaned.replace(/\./g, '').replace(',', '.'));
+}
 
 function monthlyAgg(year){
   const months = Array.from({length:12}, ()=>({receita:0, despesa:0, porCategoria:{}}));
@@ -1048,7 +1055,7 @@ function rowHtml(t){
             <option value="despesa" ${t.valor<0?'selected':''}>Despesa</option>
           </select></td>
       <td><input type="text" class="orc-input" id="editConta_${t.id}" value="${escAttr(t.conta)}"></td>
-      <td><input type="number" step="0.01" min="0" class="orc-input" id="editValor_${t.id}" value="${Math.abs(t.valor)}" style="text-align:right;"></td>
+      <td><input type="text" inputmode="decimal" class="orc-input" id="editValor_${t.id}" value="${formatValorInput(Math.abs(t.valor))}" style="text-align:right;"></td>
       <td style="white-space:nowrap;">
         <button class="btn danger-ghost" style="color:var(--green);" onclick="saveEditTransacao(${t.id})" title="Salvar">✓</button>
         <button class="btn danger-ghost" onclick="cancelEditTransacao()" title="Cancelar">✕</button>
@@ -1152,7 +1159,7 @@ function cancelEditTransacao(){ editingLancId = null; renderLancamentos(); }
 function saveEditTransacao(id){
   const data = document.getElementById('editData_'+id).value;
   const desc = document.getElementById('editDesc_'+id).value.trim();
-  const valorAbs = parseFloat(document.getElementById('editValor_'+id).value);
+  const valorAbs = parseValorBR(document.getElementById('editValor_'+id).value);
   const conta = document.getElementById('editConta_'+id).value.trim();
   const tipo = document.getElementById('editTipo_'+id).value;
   if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ alert('Preencha data, descrição e um valor válido.'); return; }
@@ -1168,7 +1175,7 @@ function saveEditTransacao(id){
 function addReceita(){
   const data = document.getElementById('rData').value;
   const desc = document.getElementById('rDesc').value.trim();
-  const valorAbs = parseFloat(document.getElementById('rValor').value);
+  const valorAbs = parseValorBR(document.getElementById('rValor').value);
   const conta = document.getElementById('rConta').value.trim();
   if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ alert('Preencha data, descrição e um valor válido.'); return; }
   db.transacoes.push({ id:nextId(db.transacoes), data, desc, valor:Math.abs(valorAbs), conta });
@@ -1189,7 +1196,7 @@ function addMonthsClamped(dateStr, n){
 function addDespesa(){
   const data = document.getElementById('dData').value;
   const desc = document.getElementById('dDesc').value.trim();
-  const valorAbs = parseFloat(document.getElementById('dValor').value);
+  const valorAbs = parseValorBR(document.getElementById('dValor').value);
   const conta = document.getElementById('dConta').value.trim();
   const parcelasRaw = parseInt(document.getElementById('dParcelas').value, 10);
   const parcelas = (parcelasRaw && parcelasRaw>1) ? parcelasRaw : 1;
@@ -1238,7 +1245,7 @@ function renderOrcamento(){
     const st = budgetStatus(orcado, gasto);
     return `<div class="orc-row">
       <div><span class="badge-cat"><span class="sw" style="background:${colorFor(c)}"></span>${c}</span></div>
-      <div><span class="mobile-label">Orçado</span><input class="orc-input" type="number" step="1" value="${orcado}" onchange="updateOrcamento('${c.replace(/'/g,"\\'")}', this.value)"></div>
+      <div><span class="mobile-label">Orçado</span><input class="orc-input" type="text" inputmode="decimal" value="${formatValorInput(orcado)}" onchange="updateOrcamento('${c.replace(/'/g,"\\'")}', this.value)"></div>
       <div><span class="mobile-label">Gasto real</span><span class="num">${fmt0(gasto)}</span></div>
       <div><span class="mobile-label">% usado</span><span class="num">${pct}%</span></div>
       <div class="status" style="color:${st.color}"><span class="mobile-label">Status</span>${st.label}</div>
@@ -1246,12 +1253,12 @@ function renderOrcamento(){
   }).join('');
 }
 function updateOrcamento(cat, val){
-  db.orcamentos[cat] = parseFloat(val)||0;
+  db.orcamentos[cat] = parseValorBR(val)||0;
   saveDB(); renderOrcamento();
 }
 function addOrcamentoCat(){
   const cat = document.getElementById('fOrcCat').value.trim();
-  const val = parseFloat(document.getElementById('fOrcVal').value)||0;
+  const val = parseValorBR(document.getElementById('fOrcVal').value)||0;
   if(!cat){ alert('Digite o nome da categoria.'); return; }
   db.orcamentos[cat] = val;
   saveDB();
@@ -1282,7 +1289,7 @@ function renderContasFixas(){
         <div><input type="text" class="orc-input" id="editCfNome_${cf.id}" value="${escAttr(cf.nome)}"></div>
         <div><select class="orc-input" id="editCfCategoria_${cf.id}">${cats.map(c=>`<option value="${escAttr(c)}" ${c===cf.categoria?'selected':''}>${c}</option>`).join('')}</select></div>
         <div><input type="number" step="1" min="1" max="31" class="orc-input" id="editCfDia_${cf.id}" value="${cf.diaVencimento}"></div>
-        <div><input type="number" step="0.01" min="0" class="orc-input" id="editCfValor_${cf.id}" value="${cf.valorEsperado}"></div>
+        <div><input type="text" inputmode="decimal" class="orc-input" id="editCfValor_${cf.id}" value="${formatValorInput(cf.valorEsperado)}"></div>
         <div class="status">
           <button class="btn danger-ghost" style="color:var(--green);" onclick="saveEditContaFixa(${cf.id})" title="Salvar">✓</button>
           <button class="btn danger-ghost" onclick="cancelEditContaFixa()" title="Cancelar">✕</button>
@@ -1310,7 +1317,7 @@ function renderContasFixas(){
 function addContaFixa(){
   const nome = document.getElementById('cfNome').value.trim();
   const categoria = document.getElementById('cfCategoria').value;
-  const valorEsperado = parseFloat(document.getElementById('cfValor').value);
+  const valorEsperado = parseValorBR(document.getElementById('cfValor').value);
   const diaVencimento = parseInt(document.getElementById('cfDia').value, 10);
   if(!nome || !categoria || isNaN(valorEsperado) || valorEsperado<0 || !diaVencimento || diaVencimento<1 || diaVencimento>31){
     alert('Preencha nome, categoria, valor e um dia de vencimento válido (1-31).'); return;
@@ -1330,7 +1337,7 @@ function saveEditContaFixa(id){
   const nome = document.getElementById('editCfNome_'+id).value.trim();
   const categoria = document.getElementById('editCfCategoria_'+id).value;
   const diaVencimento = parseInt(document.getElementById('editCfDia_'+id).value, 10);
-  const valorEsperado = parseFloat(document.getElementById('editCfValor_'+id).value);
+  const valorEsperado = parseValorBR(document.getElementById('editCfValor_'+id).value);
   if(!nome || !categoria || isNaN(valorEsperado) || valorEsperado<0 || !diaVencimento || diaVencimento<1 || diaVencimento>31){
     alert('Preencha nome, categoria, valor e um dia de vencimento válido (1-31).'); return;
   }
@@ -1382,8 +1389,8 @@ function renderInvestimentos(){
 function addInvestimento(){
   const ativo = document.getElementById('iAtivo').value.trim();
   const tipo = document.getElementById('iTipo').value.trim();
-  const investido = parseFloat(document.getElementById('iInvestido').value);
-  const atual = parseFloat(document.getElementById('iAtual').value);
+  const investido = parseValorBR(document.getElementById('iInvestido').value);
+  const atual = parseValorBR(document.getElementById('iAtual').value);
   const data = document.getElementById('iData').value;
   if(!ativo || isNaN(investido) || isNaN(atual)){ alert('Preencha ativo, valor investido e valor atual.'); return; }
   db.investimentos.push({ id:nextId(db.investimentos), ativo, tipo, investido, atual, data });
@@ -1423,7 +1430,7 @@ function deleteCategoriaKw(idx){
 }
 
 function renderConfig(){
-  document.getElementById('cfgMeta').value = db.config.metaEconomia;
+  document.getElementById('cfgMeta').value = formatValorInput(db.config.metaEconomia);
   document.getElementById('cfgNome').value = db.config.nome;
   const loggedEl = document.getElementById('loggedInAs');
   if(loggedEl){
@@ -1440,7 +1447,7 @@ function handleLogout(){
   firebase.auth().signOut();
 }
 function saveConfig(){
-  db.config.metaEconomia = parseFloat(document.getElementById('cfgMeta').value)||0;
+  db.config.metaEconomia = parseValorBR(document.getElementById('cfgMeta').value)||0;
   db.config.nome = document.getElementById('cfgNome').value.trim();
   saveDB();
   if(state.view==='painel') renderPainel();
