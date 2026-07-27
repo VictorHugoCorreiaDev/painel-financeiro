@@ -1085,12 +1085,33 @@ function groupSummaryHtml(group){
     <td><span class="pill ${tipo==='Receita'?'receita':'despesa'}">${tipo}</span></td>
     <td>${first.conta||'—'}</td>
     <td style="text-align:right;" class="num">${fmt(sumValor)}</td>
-    <td></td>
+    <td style="white-space:nowrap;">
+      <button class="btn danger-ghost" onclick="deleteGrupoTransacoes('${group.key.replace(/'/g,"\\'")}')" title="Excluir todas as parcelas">🗑</button>
+    </td>
   </tr>`;
 }
 function toggleGroupExpand(key){
   if(expandedGroupKeys.has(key)) expandedGroupKeys.delete(key); else expandedGroupKeys.add(key);
   renderLancamentos();
+}
+function transacoesDoGrupo(key){
+  return db.transacoes.filter(t=>{
+    const m = t.desc.match(PARCELA_RE);
+    if(!m) return false;
+    return (m[1] + '||' + m[3] + '||' + (t.conta||'')) === key;
+  });
+}
+function deleteGrupoTransacoes(key){
+  const items = transacoesDoGrupo(key);
+  if(!items.length) return;
+  const baseDesc = items[0].desc.match(PARCELA_RE)[1];
+  if(!confirm(`Excluir todas as ${items.length} parcelas de "${baseDesc}"? Essa ação não pode ser desfeita.`)) return;
+  const ids = new Set(items.map(t=>t.id));
+  db.transacoes = db.transacoes.filter(t=>!ids.has(t.id));
+  expandedGroupKeys.delete(key);
+  saveDB();
+  renderLancamentos(); buildSidebarPeriod();
+  if(state.view==='painel') renderPainel();
 }
 
 function renderLancamentos(){
