@@ -422,6 +422,14 @@
         <div id="metaStatus" style="font-weight:700; font-size:14px;"></div>
       </div>
 
+      <div class="card" id="contasAPagarCard" style="margin-bottom:16px; display:none; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <div class="kpi-label">Contas a pagar (mês)</div>
+          <div class="kpi-value num" id="contasAPagarValue" style="font-size:18px;">—</div>
+        </div>
+        <div id="contasAPagarStatus" style="font-weight:700; font-size:14px;"></div>
+      </div>
+
       <div class="grid row-a">
         <div class="card"><h3>Receitas x Despesas no ano</h3><div class="chart-tall"><canvas id="barAnalise"></canvas></div></div>
         <div class="card">
@@ -948,6 +956,21 @@ function renderPainel(){
   const ms = document.getElementById('metaStatus');
   if(saldo>=db.config.metaEconomia){ ms.textContent='🟢 Meta batida!'; ms.style.color='var(--green)'; }
   else{ ms.textContent = `🟡 Faltam ${fmt(db.config.metaEconomia-saldo)}`; ms.style.color='var(--amber)'; }
+
+  const cfCard = document.getElementById('contasAPagarCard');
+  if(cfCard){
+    if(!db.contasFixas.length){
+      cfCard.style.display = 'none';
+    } else {
+      cfCard.style.display = 'flex';
+      const pendentes = db.contasFixas.filter(cf => !contaFixaTransacao(cf, state.year, state.month));
+      const totalPendente = pendentes.reduce((s,cf)=>s+cf.valorEsperado, 0);
+      document.getElementById('contasAPagarValue').textContent = fmt(totalPendente);
+      const cfs = document.getElementById('contasAPagarStatus');
+      if(!pendentes.length){ cfs.textContent = '🟢 Tudo em dia'; cfs.style.color = 'var(--green)'; }
+      else{ cfs.textContent = `🟡 ${pendentes.length} pendente${pendentes.length>1?'s':''}`; cfs.style.color = 'var(--amber)'; }
+    }
+  }
 
   const catsMes = Object.entries(cur.porCategoria).sort((a,b)=>b[1]-a[1]);
   destroy('donutMes');
