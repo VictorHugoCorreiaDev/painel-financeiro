@@ -1303,6 +1303,19 @@ function contaFixaTransacao(cf, year, month){
     return t.desc.toLowerCase().includes(cf.nome.toLowerCase());
   });
 }
+let avisouVencimentoHoje = false;
+function checkContasVencendoHoje(){
+  if(avisouVencimentoHoje) return;
+  avisouVencimentoHoje = true;
+  const hoje = new Date();
+  const diaHoje = hoje.getDate();
+  const vencendoHoje = (db.contasFixas||[]).filter(cf =>
+    cf.diaVencimento===diaHoje && !contaFixaTransacao(cf, hoje.getFullYear(), hoje.getMonth())
+  );
+  if(vencendoHoje.length){
+    alert('⚠️ Vence hoje: ' + vencendoHoje.map(cf=>cf.nome).join(', '));
+  }
+}
 let editingCFId = null;
 function renderContasFixas(){
   const wrap = document.getElementById('contasFixasWrap');
@@ -1579,6 +1592,7 @@ function initApp(){
           renderBrand();
           buildSidebarPeriod();
           renderView();
+          checkContasVencendoHoje();
           if(syncCfg && syncCfg.firebaseConfig && syncCfg.codigo){
             connectSync(syncCfg.firebaseConfig, syncCfg.codigo);
           }
