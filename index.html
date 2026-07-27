@@ -1307,7 +1307,7 @@ function renderContasFixas(){
       <div class="status" style="color:${paga?'var(--green)':'var(--coral)'}">
         <span class="mobile-label">Status</span>
         ${paga
-          ? `🟢 Paga <span class="num" style="color:var(--muted); font-weight:400; font-size:11px;">(${fmt(trans.valor)})</span>`
+          ? `🟢 Paga <span class="num" style="color:var(--muted); font-weight:400; font-size:11px;">(${fmt(trans.valor)})</span> <button class="btn danger-ghost" onclick="desmarcarContaFixaPaga(${cf.id})" title="Desmarcar como paga">↺</button>`
           : `🔴 Pendente <button class="btn" style="padding:4px 10px; font-size:11px;" onclick="marcarContaFixaPaga(${cf.id})">Marcar como paga</button>`}
         <button class="btn danger-ghost" onclick="startEditContaFixa(${cf.id})" title="Editar">✎</button>
         <button class="btn danger-ghost" onclick="deleteContaFixa(${cf.id})" title="Excluir conta fixa">×</button>
@@ -1357,6 +1357,18 @@ function marcarContaFixaPaga(id){
   const dia = Math.min(cf.diaVencimento||1, daysInMonth);
   const data = `${year}-${String(month+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
   db.transacoes.push({ id:nextId(db.transacoes), data, desc:cf.nome, valor:-Math.abs(cf.valorEsperado), conta:'' });
+  saveDB();
+  renderContasFixas();
+  buildSidebarPeriod();
+  if(state.view==='painel') renderPainel();
+}
+function desmarcarContaFixaPaga(id){
+  const cf = db.contasFixas.find(c=>c.id===id);
+  if(!cf) return;
+  const trans = contaFixaTransacao(cf, state.year, state.month);
+  if(!trans) return;
+  if(!confirm(`Remover o lançamento de "${trans.desc}" (${fmt(trans.valor)}) e marcar como pendente de novo?`)) return;
+  db.transacoes = db.transacoes.filter(t=>t.id!==trans.id);
   saveDB();
   renderContasFixas();
   buildSidebarPeriod();
