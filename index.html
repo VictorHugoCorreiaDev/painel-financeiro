@@ -1588,6 +1588,7 @@ function initApp(){
         const loginScreen = document.getElementById('loginScreen');
         if(user){
           if(loginScreen) loginScreen.classList.add('hidden');
+          state.view = 'painel';
           renderNav();
           renderBrand();
           buildSidebarPeriod();
