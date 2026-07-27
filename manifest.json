@@ -1,7 +1,7 @@
 {
-  "name": "Painel Financeiro",
-  "short_name": "Painel",
-  "description": "Controle financeiro pessoal e familiar",
+  "name": "Kofre+",
+  "short_name": "Kofre+",
+  "description": "Controle financeiro pra você e sua família",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

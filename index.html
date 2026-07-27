@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>Painel Financeiro</title>
+<title>Kofre+</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#0D1326">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Painel">
+<meta name="apple-mobile-web-app-title" content="Kofre+">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" defer></script>
@@ -37,11 +37,8 @@
     padding:22px 16px; display:flex; flex-direction:column; gap:22px; position:sticky; top:0; height:100vh; overflow-y:auto; }
   .brand{ display:flex; align-items:center; gap:10px; padding:0 4px; position:relative; }
   .brand-mark{ width:34px;height:34px;border-radius:10px; flex-shrink:0; cursor:pointer; position:relative;
-    background:linear-gradient(135deg, #0D1326 0%, #1B2A6B 32%, #3A63C8 60%, #3FC1C9 82%, #7C83FD 100%);
+    background-image:url('icon-192.png'); background-color:#0D1326;
     background-size:cover; background-position:center; overflow:hidden; }
-  .brand-mark::before{ content:"M&V"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    color:#fff; font-family:'Sora',sans-serif; font-weight:800; font-size:9.5px; letter-spacing:-.3px; }
-  .brand-mark.has-custom-logo::before{ display:none; }
   .brand-mark::after{ content:"✎"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
     background:rgba(13,19,38,.55); color:#fff; font-size:12px; opacity:0; transition:.12s; }
   .brand-mark:hover::after{ opacity:1; }
@@ -209,7 +206,7 @@
   .login-card{ width:100%; max-width:340px; background:var(--panel); border:1px solid var(--border);
     border-radius:16px; padding:28px 24px; display:flex; flex-direction:column; gap:14px; }
   .login-mark{ width:44px;height:44px;border-radius:12px; margin:0 auto 4px;
-    background:linear-gradient(135deg, #0D1326 0%, #1B2A6B 32%, #3A63C8 60%, #3FC1C9 82%, #7C83FD 100%); }
+    background-image:url('icon-192.png'); background-size:cover; background-position:center; background-color:#0D1326; }
   .login-card h2{ text-align:center; font-size:18px; margin-bottom:2px; }
   .login-card .field label{ font-size:11.5px; }
   .login-card .field input{ width:100%; font-size:15px; padding:10px 12px; }
@@ -373,7 +370,7 @@
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <div class="mobile-topbar">
   <button class="hamburger" id="hamburgerBtn">☰</button>
-  <div class="mt-title">Painel Financeiro</div>
+  <div class="mt-title">Kofre+</div>
 </div>
 <div class="app">
 
@@ -650,7 +647,7 @@ function colorFor(cat){
 
 function defaultDB(){
   return {
-    config: { nome:'', metaEconomia: 1000, tituloApp:'Painel', subtitulo:'Finanças Pessoais', logoDataUrl:null },
+    config: { nome:'', metaEconomia: 1000, tituloApp:'Kofre+', subtitulo:'Controle financeiro pra você e sua família', logoDataUrl:null },
     anosExtras: [],
     categorias: [
       {kw:'mercado',cat:'Alimentação'},{kw:'supermercado',cat:'Alimentação'},{kw:'ifood',cat:'Alimentação'},
@@ -890,8 +887,8 @@ function setupOnboardingUI(user){
 
 function migrateDB(){
   db.anosExtras = db.anosExtras || [];
-  db.config.tituloApp = db.config.tituloApp || 'Painel';
-  db.config.subtitulo = db.config.subtitulo || 'Finanças Pessoais';
+  db.config.tituloApp = db.config.tituloApp || 'Kofre+';
+  db.config.subtitulo = db.config.subtitulo || 'Controle financeiro pra você e sua família';
   db.config.logoDataUrl = db.config.logoDataUrl || null;
   db.contasFixas = db.contasFixas || [];
 }
