@@ -216,6 +216,12 @@
   .login-forgot{ text-align:center; color:var(--muted); font-size:12px; text-decoration:none; }
   .login-forgot:hover{ color:var(--amber); }
 
+  #onboardingScreen{ position:fixed; inset:0; background:var(--bg); z-index:240;
+    display:flex; align-items:center; justify-content:center; padding:20px; }
+  #onboardingScreen.hidden{ display:none; }
+  .onb-divider{ text-align:center; color:var(--muted); font-size:11.5px; margin:2px 0; }
+  .onb-box{ display:flex; flex-direction:column; gap:8px; }
+
   /* Inputs numéricos: remove as setinhas feias do navegador */
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
@@ -332,12 +338,30 @@
 <div id="loginScreen" class="hidden">
   <div class="login-card">
     <div class="login-mark"></div>
-    <h2>Entrar</h2>
+    <h2 id="loginTitle">Entrar</h2>
     <div class="field"><label>E-mail</label><input type="email" id="loginEmail" autocomplete="username" placeholder="seu@email.com"></div>
     <div class="field"><label>Senha</label><input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••"></div>
     <button class="btn" id="loginBtn" style="width:100%;">Entrar</button>
     <div class="login-error" id="loginError"></div>
     <a href="#" id="forgotPasswordLink" class="login-forgot">Esqueci minha senha</a>
+    <a href="#" id="toggleSignupLink" class="login-forgot">Não tem conta? Criar uma</a>
+  </div>
+</div>
+<div id="onboardingScreen" class="hidden">
+  <div class="login-card">
+    <div class="login-mark"></div>
+    <h2>Bem-vindo(a)!</h2>
+    <div style="font-size:12px; color:var(--muted); text-align:center; margin-top:-8px;">Crie uma família nova ou entre em uma existente com um código de convite.</div>
+    <div class="onb-box">
+      <div class="field"><label>Nome da família</label><input type="text" id="onbNomeFamilia" placeholder="Ex: Silva"></div>
+      <button class="btn" id="onbCriarBtn" style="width:100%;">Criar família nova</button>
+    </div>
+    <div class="onb-divider">ou</div>
+    <div class="onb-box">
+      <div class="field"><label>Código de convite</label><input type="text" id="onbCodigoInput" placeholder="ex: silva-4f2a"></div>
+      <button class="btn secondary" id="onbEntrarBtn" style="width:100%;">Entrar com código</button>
+    </div>
+    <div class="login-error" id="onbError"></div>
   </div>
 </div>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -674,8 +698,9 @@ let db = loadDB();
    SINCRONIZAÇÃO ENTRE DISPOSITIVOS (Firebase Firestore)
    ========================================================= */
 const SYNC_KEY = 'painel_financeiro_sync_v1';
-/* Config padrão da família — assim o app reconecta sozinho mesmo se o
-   localStorage for perdido (ex: reinstalar o PWA no iOS apaga os dados locais). */
+/* Config padrão do projeto Firebase — compartilhada por todas as famílias
+   que usam o app. O código da família (qual documento acessar) NÃO fica
+   mais fixo aqui: é resolvido por conta de usuário (ver resolveFamiliaEConecta). */
 const DEFAULT_SYNC = {
   firebaseConfig: {
     apiKey: "AIzaSyAoWdQB3g9hoV2rehJ7NOYR46EGtLcGjWM",
@@ -684,8 +709,7 @@ const DEFAULT_SYNC = {
     storageBucket: "painel-financeiro-35769.firebasestorage.app",
     messagingSenderId: "320445583517",
     appId: "1:320445583517:web:cb939393cf6748779e0474"
-  },
-  codigo: "correia-finanças06"
+  }
 };
 function loadSync(){ try{ const raw = localStorage.getItem(SYNC_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
 function saveSyncCfg(s){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(s)); }catch(e){} }
@@ -740,7 +764,9 @@ function subscribeSync(){
     if(firstSnapshot){
       firstSnapshot = false;
       if(!docSnap.exists || !docSnap.data() || !docSnap.data().payload){
-        pushToFirestore();
+        const user = firebase.auth().currentUser;
+        const membros = user ? [user.email] : [];
+        firestoreDocRef.set({ payload: db, membros, updatedAt: Date.now(), updatedBy: deviceId }, { merge: true }).catch(()=>{});
         return;
       }
     }
@@ -757,8 +783,102 @@ function subscribeSync(){
 }
 function pushToFirestore(){
   if(!firestoreDocRef || applyingRemote) return;
-  firestoreDocRef.set({ payload: db, updatedAt: Date.now(), updatedBy: deviceId }).catch(()=>{});
+  firestoreDocRef.set({ payload: db, updatedAt: Date.now(), updatedBy: deviceId }, { merge: true }).catch(()=>{});
 }
+
+/* =========================================================
+   MULTI-FAMÍLIA: cada usuário pertence a uma família (documento
+   compartilhado); usuarios/{uid} guarda qual família é a dele.
+   ========================================================= */
+function slugify(s){
+  return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/(^-+|-+$)/g,'') || 'familia';
+}
+function resolveFamiliaEConecta(user){
+  const firestore = firebase.firestore();
+  firestore.collection('usuarios').doc(user.uid).get().then(snap=>{
+    if(snap.exists && snap.data() && snap.data().codigo){
+      connectSync(syncCfg.firebaseConfig, snap.data().codigo);
+      return;
+    }
+    if(syncCfg && syncCfg.codigo){
+      const codigo = syncCfg.codigo;
+      firestore.collection('familias').doc(codigo).set({
+        membros: firebase.firestore.FieldValue.arrayUnion(user.email)
+      }, { merge: true }).then(()=>{
+        return firestore.collection('usuarios').doc(user.uid).set({ email: user.email, codigo });
+      }).then(()=>{
+        connectSync(syncCfg.firebaseConfig, codigo);
+      }).catch(err=>{
+        console.error('Falha ao migrar família automaticamente:', err);
+        showOnboarding(user);
+      });
+      return;
+    }
+    showOnboarding(user);
+  }).catch(err=>{
+    console.error(err);
+    showOnboarding(user);
+  });
+}
+function showOnboarding(user){
+  const el = document.getElementById('onboardingScreen');
+  if(el) el.classList.remove('hidden');
+  setupOnboardingUI(user);
+}
+function hideOnboarding(){
+  const el = document.getElementById('onboardingScreen');
+  if(el) el.classList.add('hidden');
+}
+let onboardingWired = false;
+function criarNovaFamilia(user, nome, tentativas){
+  tentativas = tentativas || 0;
+  const errEl = document.getElementById('onbError');
+  if(tentativas>=5){ errEl.textContent = 'Não foi possível gerar um código único. Tente outro nome.'; return; }
+  const firestore = firebase.firestore();
+  const codigo = slugify(nome) + '-' + Math.random().toString(36).slice(2,6);
+  const ref = firestore.collection('familias').doc(codigo);
+  ref.get().then(snap=>{
+    if(snap.exists){ criarNovaFamilia(user, nome, tentativas+1); return; }
+    ref.set({ payload: db, membros:[user.email], updatedAt: Date.now(), updatedBy: deviceId }).then(()=>{
+      return firestore.collection('usuarios').doc(user.uid).set({ email:user.email, codigo });
+    }).then(()=>{
+      hideOnboarding();
+      connectSync(syncCfg.firebaseConfig, codigo);
+      alert('Família criada! Código: ' + codigo + '\n\nCompartilhe esse código com quem for usar o app com você — a pessoa escolhe "Entrar com código" no primeiro login (o código também aparece em Config → Sincronização).');
+    }).catch(err=>{ errEl.textContent = 'Erro ao criar família: ' + err.message; });
+  }).catch(err=>{ errEl.textContent = 'Erro ao verificar código: ' + err.message; });
+}
+function entrarEmFamilia(user, codigo){
+  const errEl = document.getElementById('onbError');
+  const firestore = firebase.firestore();
+  firestore.collection('familias').doc(codigo).set({
+    membros: firebase.firestore.FieldValue.arrayUnion(user.email)
+  }, { merge: true }).then(()=>{
+    return firestore.collection('usuarios').doc(user.uid).set({ email:user.email, codigo });
+  }).then(()=>{
+    hideOnboarding();
+    connectSync(syncCfg.firebaseConfig, codigo);
+  }).catch(err=>{ errEl.textContent = 'Código inválido ou sem permissão: ' + err.message; });
+}
+function setupOnboardingUI(user){
+  if(onboardingWired) return;
+  onboardingWired = true;
+  const errEl = document.getElementById('onbError');
+  document.getElementById('onbCriarBtn').onclick = ()=>{
+    errEl.textContent = '';
+    const nome = document.getElementById('onbNomeFamilia').value.trim();
+    if(!nome){ errEl.textContent = 'Digite um nome pra família.'; return; }
+    criarNovaFamilia(user, nome);
+  };
+  document.getElementById('onbEntrarBtn').onclick = ()=>{
+    errEl.textContent = '';
+    const codigo = document.getElementById('onbCodigoInput').value.trim();
+    if(!codigo){ errEl.textContent = 'Digite o código de convite.'; return; }
+    entrarEmFamilia(user, codigo);
+  };
+}
+
 function migrateDB(){
   db.anosExtras = db.anosExtras || [];
   db.config.tituloApp = db.config.tituloApp || 'Painel';
@@ -1539,6 +1659,8 @@ function translateAuthError(code){
     'auth/wrong-password':'E-mail ou senha incorretos.',
     'auth/invalid-credential':'E-mail ou senha incorretos.',
     'auth/missing-password':'Digite sua senha.',
+    'auth/email-already-in-use':'Já existe uma conta com esse e-mail. Tente entrar em vez de criar.',
+    'auth/weak-password':'Senha muito curta — use pelo menos 6 caracteres.',
     'auth/operation-not-allowed':'Login por e-mail/senha ainda não está habilitado no Firebase (ative em Authentication → Sign-in method).',
     'auth/configuration-not-found':'A Autenticação ainda não foi configurada no projeto Firebase (ative em Authentication → Sign-in method → E-mail/senha).',
     'auth/too-many-requests':'Muitas tentativas. Tente novamente mais tarde.',
@@ -1551,20 +1673,45 @@ function setupLoginUI(auth){
   const errEl = document.getElementById('loginError');
   const emailEl = document.getElementById('loginEmail');
   const passEl = document.getElementById('loginPassword');
-  const doLogin = ()=>{
+  const titleEl = document.getElementById('loginTitle');
+  const toggleEl = document.getElementById('toggleSignupLink');
+  let modo = 'entrar';
+  const doAuth = ()=>{
     errEl.style.color = 'var(--coral)';
     errEl.textContent = '';
     const email = emailEl.value.trim();
     const pass = passEl.value;
     if(!email || !pass){ errEl.textContent = 'Preencha e-mail e senha.'; return; }
-    btn.disabled = true; btn.textContent = 'Entrando...';
-    auth.signInWithEmailAndPassword(email, pass)
-      .catch(err=>{ errEl.textContent = translateAuthError(err.code); })
-      .finally(()=>{ btn.disabled = false; btn.textContent = 'Entrar'; });
+    btn.disabled = true;
+    if(modo==='entrar'){
+      btn.textContent = 'Entrando...';
+      auth.signInWithEmailAndPassword(email, pass)
+        .catch(err=>{ errEl.textContent = translateAuthError(err.code); })
+        .finally(()=>{ btn.disabled = false; btn.textContent = 'Entrar'; });
+    } else {
+      btn.textContent = 'Criando conta...';
+      auth.createUserWithEmailAndPassword(email, pass)
+        .catch(err=>{ errEl.textContent = translateAuthError(err.code); })
+        .finally(()=>{ btn.disabled = false; btn.textContent = 'Criar conta'; });
+    }
   };
-  btn.onclick = doLogin;
-  passEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
-  emailEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  btn.onclick = doAuth;
+  passEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doAuth(); });
+  emailEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doAuth(); });
+  toggleEl.addEventListener('click', e=>{
+    e.preventDefault();
+    errEl.textContent = '';
+    modo = modo==='entrar' ? 'criar' : 'entrar';
+    if(modo==='criar'){
+      titleEl.textContent = 'Criar conta';
+      btn.textContent = 'Criar conta';
+      toggleEl.textContent = 'Já tem conta? Entrar';
+    } else {
+      titleEl.textContent = 'Entrar';
+      btn.textContent = 'Entrar';
+      toggleEl.textContent = 'Não tem conta? Criar uma';
+    }
+  });
   document.getElementById('forgotPasswordLink').addEventListener('click', e=>{
     e.preventDefault();
     const email = emailEl.value.trim();
@@ -1594,11 +1741,11 @@ function initApp(){
           buildSidebarPeriod();
           renderView();
           checkContasVencendoHoje();
-          if(syncCfg && syncCfg.firebaseConfig && syncCfg.codigo){
-            connectSync(syncCfg.firebaseConfig, syncCfg.codigo);
-          }
+          resolveFamiliaEConecta(user);
         } else {
           if(loginScreen) loginScreen.classList.remove('hidden');
+          hideOnboarding();
+          onboardingWired = false;
         }
         const loading = document.getElementById('appLoading');
         if(loading) loading.classList.add('hidden');
