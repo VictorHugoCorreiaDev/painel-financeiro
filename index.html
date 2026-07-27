@@ -1246,15 +1246,28 @@ function contaFixaTransacao(cf, year, month){
     return t.desc.toLowerCase().includes(cf.nome.toLowerCase());
   });
 }
+let editingCFId = null;
 function renderContasFixas(){
   const wrap = document.getElementById('contasFixasWrap');
   const catSelect = document.getElementById('cfCategoria');
+  const cats = allCategoryNames().sort();
   if(catSelect){
-    const cats = allCategoryNames().sort();
     catSelect.innerHTML = '<option value="">Categoria...</option>' + cats.map(c=>`<option value="${escAttr(c)}">${c}</option>`).join('');
   }
   if(!db.contasFixas.length){ wrap.innerHTML = '<div class="empty">Nenhuma conta fixa cadastrada.</div>'; return; }
   wrap.innerHTML = db.contasFixas.map(cf=>{
+    if(cf.id===editingCFId){
+      return `<div class="cf-row">
+        <div><input type="text" class="orc-input" id="editCfNome_${cf.id}" value="${escAttr(cf.nome)}"></div>
+        <div><select class="orc-input" id="editCfCategoria_${cf.id}">${cats.map(c=>`<option value="${escAttr(c)}" ${c===cf.categoria?'selected':''}>${c}</option>`).join('')}</select></div>
+        <div><input type="number" step="1" min="1" max="31" class="orc-input" id="editCfDia_${cf.id}" value="${cf.diaVencimento}"></div>
+        <div><input type="number" step="0.01" min="0" class="orc-input" id="editCfValor_${cf.id}" value="${cf.valorEsperado}"></div>
+        <div class="status">
+          <button class="btn danger-ghost" style="color:var(--green);" onclick="saveEditContaFixa(${cf.id})" title="Salvar">✓</button>
+          <button class="btn danger-ghost" onclick="cancelEditContaFixa()" title="Cancelar">✕</button>
+        </div>
+      </div>`;
+    }
     const trans = contaFixaTransacao(cf, state.year, state.month);
     const paga = !!trans;
     return `<div class="cf-row">
@@ -1267,6 +1280,7 @@ function renderContasFixas(){
         ${paga
           ? `🟢 Paga <span class="num" style="color:var(--muted); font-weight:400; font-size:11px;">(${fmt(trans.valor)})</span>`
           : `🔴 Pendente <button class="btn" style="padding:4px 10px; font-size:11px;" onclick="marcarContaFixaPaga(${cf.id})">Marcar como paga</button>`}
+        <button class="btn danger-ghost" onclick="startEditContaFixa(${cf.id})" title="Editar">✎</button>
         <button class="btn danger-ghost" onclick="deleteContaFixa(${cf.id})" title="Excluir conta fixa">×</button>
       </div>
     </div>`;
@@ -1288,6 +1302,23 @@ function addContaFixa(){
 function deleteContaFixa(id){
   db.contasFixas = db.contasFixas.filter(c=>c.id!==id);
   saveDB(); renderContasFixas();
+}
+function startEditContaFixa(id){ editingCFId = id; renderContasFixas(); }
+function cancelEditContaFixa(){ editingCFId = null; renderContasFixas(); }
+function saveEditContaFixa(id){
+  const nome = document.getElementById('editCfNome_'+id).value.trim();
+  const categoria = document.getElementById('editCfCategoria_'+id).value;
+  const diaVencimento = parseInt(document.getElementById('editCfDia_'+id).value, 10);
+  const valorEsperado = parseFloat(document.getElementById('editCfValor_'+id).value);
+  if(!nome || !categoria || isNaN(valorEsperado) || valorEsperado<0 || !diaVencimento || diaVencimento<1 || diaVencimento>31){
+    alert('Preencha nome, categoria, valor e um dia de vencimento válido (1-31).'); return;
+  }
+  const cf = db.contasFixas.find(c=>c.id===id);
+  if(!cf) return;
+  cf.nome = nome; cf.categoria = categoria; cf.diaVencimento = diaVencimento; cf.valorEsperado = valorEsperado;
+  saveDB();
+  editingCFId = null;
+  renderContasFixas();
 }
 function marcarContaFixaPaga(id){
   const cf = db.contasFixas.find(c=>c.id===id);
