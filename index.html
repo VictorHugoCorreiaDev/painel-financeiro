@@ -426,6 +426,7 @@
         <div>
           <div class="kpi-label">Contas a pagar (mês)</div>
           <div class="kpi-value num" id="contasAPagarValue" style="font-size:18px;">—</div>
+          <div id="contasAPagarDetalhe" style="font-size:11px; color:var(--muted); margin-top:4px;"></div>
         </div>
         <div id="contasAPagarStatus" style="font-weight:700; font-size:14px;"></div>
       </div>
@@ -969,6 +970,10 @@ function renderPainel(){
       const cfs = document.getElementById('contasAPagarStatus');
       if(!pendentes.length){ cfs.textContent = '🟢 Tudo em dia'; cfs.style.color = 'var(--green)'; }
       else{ cfs.textContent = `🟡 ${pendentes.length} pendente${pendentes.length>1?'s':''}`; cfs.style.color = 'var(--amber)'; }
+      const detalhe = document.getElementById('contasAPagarDetalhe');
+      detalhe.textContent = [...pendentes]
+        .sort((a,b)=>a.diaVencimento-b.diaVencimento)
+        .map(cf=>`${cf.nome} (dia ${cf.diaVencimento})`).join(' · ');
     }
   }
 
