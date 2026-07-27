@@ -230,8 +230,9 @@
   /* -webkit-min-logical-width evita que o Safari/iOS force uma largura interna
      maior que o container, estourando o card no mobile */
   input[type=date]{ color-scheme:dark; width:100%; max-width:100%; box-sizing:border-box; -webkit-min-logical-width:0; min-width:0;
-    text-align:left; }
+    text-align:left; padding-right:6px; }
   input[type=date]::-webkit-date-and-time-value{ text-align:left; }
+  input[type=date]::-webkit-calendar-picker-indicator{ margin-left:6px; padding:2px; }
   .field{ overflow:hidden; }
 
   /* Scrollbars customizadas em todo o app */
