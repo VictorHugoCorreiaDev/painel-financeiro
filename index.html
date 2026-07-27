@@ -249,7 +249,8 @@
   .entry-card h3{ display:flex; align-items:center; gap:8px; font-size:14px; margin-bottom:14px; text-transform:none; letter-spacing:0; }
   .entry-card.income h3{ color:var(--green); } .entry-card.expense h3{ color:var(--coral); }
   .entry-card .form-row{ margin-bottom:0; }
-  .entry-card .field{ flex:1; min-width:110px; }
+  .entry-card .field{ flex:1; min-width:130px; }
+  .entry-card .field:has(input[type=date]){ min-width:175px; }
   .btn.income-btn{ background:var(--green); color:#0a2412; }
   .btn.expense-btn{ background:var(--coral); color:#2a0b0d; }
 
