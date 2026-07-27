@@ -562,13 +562,10 @@
 
     <section class="view" id="view-investimentos">
       <div class="topbar"><h2>Investimentos</h2><div class="period">Carteira de investimentos — atualize o preço atual quando quiser conferir a rentabilidade</div></div>
-      <div class="filter-tabs" id="invSubNav">
-        <button class="filter-tab active" data-sub="geral">Visão Geral</button>
-        <button class="filter-tab" data-sub="acoes">Ações</button>
-        <button class="filter-tab" data-sub="fiis">FIIs</button>
-        <button class="filter-tab" data-sub="tesouro">Tesouro Direto</button>
-        <button class="filter-tab" data-sub="dividendos">Dividendos</button>
-        <button class="filter-tab" data-sub="distribuicao">Distribuição</button>
+      <div class="filter-tabs" id="invSubNav"></div>
+      <div class="year-add-row" id="invClassAddRow">
+        <input type="text" id="invClassAddInput" placeholder="Ex: Criptomoedas">
+        <button class="btn" onclick="confirmAddClasse()">OK</button>
       </div>
       <div id="invSubContent"></div>
     </section>
@@ -687,6 +684,11 @@ function defaultDB(){
     orcamentos: { 'Alimentação':800,'Transporte':300,'Moradia':1500,'Contas de Casa':350,'Assinaturas':80,
       'Saúde':200,'Educação':300,'Lazer':250,'Vestuário':150,'Pet':100,'Outros':150 },
     carteira: {
+      classes: [
+        {key:'acoes', label:'Ações'},
+        {key:'fiis', label:'Fundos Imobiliários'},
+        {key:'tesouro', label:'Tesouro Direto'}
+      ],
       precos: { 'ABCD3': 9.27, 'XYZ11': 104.00, 'Selic 2029': 3120.00 },
       posicoes: {
         acoes: [ {id:1, ticker:'ABCD3', segmento:'Outros', data:'2026-04-20', cotas:150, valorCota:10.00} ],
@@ -795,7 +797,7 @@ function subscribeSync(){
     migrateDB();
     saveDB();
     applyingRemote = false;
-    buildSidebarPeriod(); renderNav(); renderBrand(); renderView();
+    buildSidebarPeriod(); buildInvNav(); renderNav(); renderBrand(); renderView();
     setSyncStatus('Sincronizado agora ✓', true);
   }, err=>{ setSyncStatus('Erro de sincronização: ' + err.message, false); });
 }
@@ -904,12 +906,14 @@ function migrateDB(){
   db.config.logoDataUrl = db.config.logoDataUrl || null;
   db.contasFixas = db.contasFixas || [];
 
-  db.carteira = db.carteira || { precos:{}, posicoes:{}, dividendos:[] };
+  db.carteira = db.carteira || { classes:[], precos:{}, posicoes:{}, dividendos:[] };
+  db.carteira.classes = db.carteira.classes || [];
+  if(!db.carteira.classes.length){
+    db.carteira.classes = [ {key:'acoes',label:'Ações'}, {key:'fiis',label:'Fundos Imobiliários'}, {key:'tesouro',label:'Tesouro Direto'} ];
+  }
   db.carteira.precos = db.carteira.precos || {};
   db.carteira.posicoes = db.carteira.posicoes || {};
-  db.carteira.posicoes.acoes = db.carteira.posicoes.acoes || [];
-  db.carteira.posicoes.fiis = db.carteira.posicoes.fiis || [];
-  db.carteira.posicoes.tesouro = db.carteira.posicoes.tesouro || [];
+  db.carteira.classes.forEach(c=>{ db.carteira.posicoes[c.key] = db.carteira.posicoes[c.key] || []; });
   db.carteira.dividendos = db.carteira.dividendos || [];
   if(Array.isArray(db.investimentos) && db.investimentos.length){
     db.investimentos.forEach(item=>{
@@ -1210,9 +1214,6 @@ document.querySelectorAll('#lancFilter .filter-tab').forEach(b=>{
   b.onclick = ()=>{ lancFilter=b.dataset.f; editingLancId=null; document.querySelectorAll('#lancFilter .filter-tab').forEach(x=>x.classList.toggle('active', x===b)); renderLancamentos(); };
 });
 let invSub = 'geral';
-document.querySelectorAll('#invSubNav .filter-tab').forEach(b=>{
-  b.onclick = ()=>{ invSub=b.dataset.sub; document.querySelectorAll('#invSubNav .filter-tab').forEach(x=>x.classList.toggle('active', x===b)); renderInvestimentos(); };
-});
 function escAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
 
 function populateCategoriaSelects(){
@@ -1578,11 +1579,74 @@ function desmarcarContaFixaPaga(id){
   if(state.view==='painel') renderPainel();
 }
 
-const CARTEIRA_CLASSES = {
-  acoes:   { label:'Ações',               tickerLabel:'Ticker', tickerPh:'Ex: BBAS3',      segPh:'Ex: Banco' },
-  fiis:    { label:'Fundos Imobiliários', tickerLabel:'Ticker', tickerPh:'Ex: BTLG11',     segPh:'Ex: Logístico' },
-  tesouro: { label:'Tesouro Direto',      tickerLabel:'Título', tickerPh:'Ex: Selic 2029', segPh:'Ex: Pós-fixado' }
+const CARTEIRA_PRESETS = {
+  acoes:   { tickerLabel:'Ticker', tickerPh:'Ex: BBAS3',      segPh:'Ex: Banco' },
+  fiis:    { tickerLabel:'Ticker', tickerPh:'Ex: BTLG11',     segPh:'Ex: Logístico' },
+  tesouro: { tickerLabel:'Título', tickerPh:'Ex: Selic 2029', segPh:'Ex: Pós-fixado' }
 };
+function classeMeta(key){
+  const def = (db.carteira.classes||[]).find(c=>c.key===key) || { key, label:key };
+  const preset = CARTEIRA_PRESETS[key] || { tickerLabel:'Ativo', tickerPh:'Ex: BTC', segPh:'Ex: Categoria' };
+  return Object.assign({ label: def.label, custom: !!def.custom }, preset);
+}
+
+function buildInvNav(){
+  const nav = document.getElementById('invSubNav');
+  if(!nav) return;
+  nav.innerHTML = '';
+  const order = ['geral', ...db.carteira.classes.map(c=>c.key), 'dividendos', 'distribuicao'];
+  order.forEach(key=>{
+    const b = document.createElement('button');
+    b.className = 'filter-tab' + (key===invSub ? ' active' : '');
+    const label = key==='geral' ? 'Visão Geral' : key==='dividendos' ? 'Dividendos' : key==='distribuicao' ? 'Distribuição' : classeMeta(key).label;
+    b.textContent = label;
+    b.onclick = ()=>{ invSub = key; buildInvNav(); renderInvestimentos(); };
+    const meta = !['geral','dividendos','distribuicao'].includes(key) ? classeMeta(key) : null;
+    if(meta && meta.custom && (db.carteira.posicoes[key]||[]).length===0){
+      const rm = document.createElement('span');
+      rm.textContent = '×';
+      rm.title = 'Remover classe';
+      rm.style.cssText = 'margin-left:7px; opacity:.65; font-weight:700;';
+      rm.onclick = (e)=>{ e.stopPropagation(); removeClasse(key); };
+      b.appendChild(rm);
+    }
+    nav.appendChild(b);
+  });
+  const addBtn = document.createElement('button');
+  addBtn.className = 'filter-tab';
+  addBtn.style.borderStyle = 'dashed';
+  addBtn.textContent = '+ Classe';
+  addBtn.title = 'Criar nova classe de ativos (ex: Criptomoedas, Stocks...)';
+  addBtn.onclick = ()=>{
+    const row = document.getElementById('invClassAddRow');
+    row.style.display = row.style.display==='flex' ? 'none' : 'flex';
+    if(row.style.display==='flex'){ const inp=document.getElementById('invClassAddInput'); inp.value=''; inp.focus(); }
+  };
+  nav.appendChild(addBtn);
+}
+function confirmAddClasse(){
+  const input = document.getElementById('invClassAddInput');
+  const label = input.value.trim();
+  if(!label){ alert('Digite um nome pra classe, ex: Criptomoedas.'); return; }
+  if(db.carteira.classes.some(c=>c.label.toLowerCase()===label.toLowerCase())){ alert('Já existe uma classe com esse nome.'); return; }
+  const existingKeys = db.carteira.classes.map(c=>c.key);
+  let base = slugify(label) || 'classe', key = base, n = 2;
+  while(existingKeys.includes(key)){ key = base + '-' + n; n++; }
+  db.carteira.classes.push({ key, label, custom:true });
+  db.carteira.posicoes[key] = [];
+  saveDB();
+  invSub = key;
+  document.getElementById('invClassAddRow').style.display = 'none';
+  buildInvNav(); renderInvestimentos();
+}
+document.getElementById('invClassAddInput').addEventListener('keydown', e=>{ if(e.key==='Enter') confirmAddClasse(); });
+function removeClasse(key){
+  if(!confirm('Remover essa classe de ativos? Só é possível remover classes sem aportes cadastrados.')) return;
+  db.carteira.classes = db.carteira.classes.filter(c=>c.key!==key);
+  delete db.carteira.posicoes[key];
+  if(invSub===key) invSub = 'geral';
+  saveDB(); buildInvNav(); renderInvestimentos();
+}
 
 function carteiraAgrupado(classe){
   const posicoes = db.carteira.posicoes[classe] || [];
@@ -1605,7 +1669,7 @@ function carteiraAgrupado(classe){
   }).sort((a,b)=> b.atual-a.atual);
 }
 function carteiraTodasClasses(){
-  return Object.keys(CARTEIRA_CLASSES).flatMap(classe => carteiraAgrupado(classe).map(g=>Object.assign({classe}, g)));
+  return db.carteira.classes.map(c=>c.key).flatMap(classe => carteiraAgrupado(classe).map(g=>Object.assign({classe}, g)));
 }
 
 function renderInvestimentos(){
@@ -1617,10 +1681,10 @@ function renderInvestimentos(){
 }
 
 function renderCarteiraGeral(wrap){
-  const classes = Object.keys(CARTEIRA_CLASSES);
+  const classes = db.carteira.classes.map(c=>c.key);
   const porClasse = classes.map(c=>{
     const g = carteiraAgrupado(c);
-    return { classe:c, label:CARTEIRA_CLASSES[c].label, investido:g.reduce((s,x)=>s+x.investido,0), atual:g.reduce((s,x)=>s+x.atual,0) };
+    return { classe:c, label:classeMeta(c).label, investido:g.reduce((s,x)=>s+x.investido,0), atual:g.reduce((s,x)=>s+x.atual,0) };
   });
   const totalInvestido = porClasse.reduce((s,c)=>s+c.investido,0);
   const totalAtual = porClasse.reduce((s,c)=>s+c.atual,0);
@@ -1684,7 +1748,7 @@ function renderCarteiraGeral(wrap){
 }
 
 function renderCarteiraClasse(wrap, classe){
-  const meta = CARTEIRA_CLASSES[classe];
+  const meta = classeMeta(classe);
   const posicoes = db.carteira.posicoes[classe] || [];
   const grupos = carteiraAgrupado(classe);
   const tickerKeys = grupos.map(g=>g.ticker);
@@ -1828,8 +1892,8 @@ function renderCarteiraDistribuicao(wrap){
   const segEntries = Object.entries(porSegmento).sort((a,b)=>b[1]-a[1]);
   const segKeys = segEntries.map(e=>e[0]);
 
-  const classes = Object.keys(CARTEIRA_CLASSES);
-  const porClasse = classes.map(c=>({ classe:c, label:CARTEIRA_CLASSES[c].label, atual: carteiraAgrupado(c).reduce((s,g)=>s+g.atual,0) })).filter(c=>c.atual>0);
+  const classes = db.carteira.classes.map(c=>c.key);
+  const porClasse = classes.map(c=>({ classe:c, label:classeMeta(c).label, atual: carteiraAgrupado(c).reduce((s,g)=>s+g.atual,0) })).filter(c=>c.atual>0);
 
   wrap.innerHTML = `
     <div class="card" style="margin-bottom:16px;">
@@ -1907,7 +1971,7 @@ function importarDados(ev){
   const file = ev.target.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = e=>{
-    try{ const parsed = JSON.parse(e.target.result); db = parsed; migrateDB(); saveDB(); buildSidebarPeriod(); renderView(); alert('Dados importados.'); }
+    try{ const parsed = JSON.parse(e.target.result); db = parsed; migrateDB(); saveDB(); buildSidebarPeriod(); buildInvNav(); renderView(); alert('Dados importados.'); }
     catch(err){ alert('Arquivo inválido.'); }
   };
   reader.readAsText(file);
@@ -2010,6 +2074,7 @@ function initApp(){
           renderNav();
           renderBrand();
           buildSidebarPeriod();
+          buildInvNav();
           renderView();
           checkContasVencendoHoje();
           resolveFamiliaEConecta(user);
