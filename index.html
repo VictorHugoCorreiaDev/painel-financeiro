@@ -188,6 +188,8 @@
   .cf-row{ display:grid; grid-template-columns:1.2fr 1fr 70px 110px 1.5fr; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
   .cf-row .status{ font-size:12px; font-weight:700; text-align:right; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
 
+  .cat-row{ display:grid; grid-template-columns:1fr 1fr 40px; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
+
   .empty{ color:var(--muted); font-size:13px; padding:18px 0; text-align:center; }
 
   #appLoading{ position:fixed; inset:0; background:var(--bg); z-index:300;
@@ -311,6 +313,10 @@
     .cf-row{ grid-template-columns:1fr; gap:6px; padding:14px 0; }
     .cf-row .status{ justify-content:flex-start; }
     .cf-row > div{ display:flex; align-items:center; gap:8px; }
+
+    .cat-header{ display:none; }
+    .cat-row{ grid-template-columns:1fr; gap:6px; padding:14px 0; }
+    .cat-row > div{ display:flex; align-items:center; gap:8px; }
 
     /* Áreas de toque maiores */
     .nav-btn{ padding:12px 10px; font-size:14px; }
@@ -574,6 +580,9 @@
           <div class="field"><label>Palavra-chave</label><input type="text" id="cKw" placeholder="uber"></div>
           <div class="field"><label>Categoria</label><input type="text" id="cCat" placeholder="Transporte"></div>
           <button class="btn" onclick="addCategoriaKw()">+ Adicionar</button>
+        </div>
+        <div class="cat-row cat-header" style="border-bottom:1px solid var(--border); font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">
+          <div>Palavra-chave</div><div>Categoria</div><div></div>
         </div>
         <div id="catTableWrap"></div>
       </div>
@@ -1581,13 +1590,11 @@ function deleteInvestimento(id){
 function renderCategorias(){
   const wrap = document.getElementById('catTableWrap');
   if(!db.categorias.length){ wrap.innerHTML = '<div class="empty">Nenhuma palavra-chave cadastrada.</div>'; return; }
-  wrap.innerHTML = `<div class="table-scroll"><table class="data"><thead><tr><th>Palavra-chave</th><th>Categoria</th><th></th></tr></thead><tbody>
-    ${db.categorias.map((c,idx)=>`<tr>
-      <td>${c.kw}</td>
-      <td><span class="badge-cat"><span class="sw" style="background:${colorFor(c.cat)}"></span>${c.cat}</span></td>
-      <td><button class="btn danger-ghost" onclick="deleteCategoriaKw(${idx})">×</button></td>
-    </tr>`).join('')}
-  </tbody></table></div>`;
+  wrap.innerHTML = db.categorias.map((c,idx)=>`<div class="cat-row">
+      <div><span class="mobile-label">Palavra-chave</span>${c.kw}</div>
+      <div><span class="mobile-label">Categoria</span><span class="badge-cat"><span class="sw" style="background:${colorFor(c.cat)}"></span>${c.cat}</span></div>
+      <div><button class="btn danger-ghost" onclick="deleteCategoriaKw(${idx})" title="Excluir">×</button></div>
+    </div>`).join('');
 }
 function addCategoriaKw(){
   const kw = document.getElementById('cKw').value.trim().toLowerCase();
