@@ -766,6 +766,41 @@ function setSyncStatus(msg, ok){
   el.textContent = msg;
   el.style.color = ok===true ? 'var(--green)' : ok===false ? 'var(--coral)' : 'var(--muted)';
 }
+/* Aviso global de falha de sincronização. Antes toda falha de escrita era
+   engolida por um .catch(()=>{}) vazio: a alteração sumia sem explicação e a
+   pessoa só descobria ao abrir em outro aparelho. O #syncStatus não servia
+   porque só aparece dentro da tela de Config. */
+let syncAlertEl = null;
+function showSyncError(err){
+  const code = (err && (err.code || err.message)) || 'erro desconhecido';
+  if(!syncAlertEl){
+    syncAlertEl = document.createElement('div');
+    syncAlertEl.style.cssText = 'position:fixed; left:50%; transform:translateX(-50%); bottom:16px;'
+      + 'z-index:9999; max-width:min(560px,92vw); background:var(--panel-2);'
+      + 'border:1px solid var(--coral); color:var(--text); padding:12px 14px; border-radius:10px;'
+      + 'font-size:13px; line-height:1.45; box-shadow:0 8px 28px rgba(0,0,0,.45);'
+      + 'display:flex; gap:10px; align-items:flex-start;';
+    document.body.appendChild(syncAlertEl);
+  }
+  syncAlertEl.textContent = '';
+  const txt = document.createElement('div'); txt.style.flex = '1';
+  const t1 = document.createElement('b');
+  t1.style.color = 'var(--coral)';
+  t1.textContent = 'Alteração salva só neste aparelho';
+  const t2 = document.createElement('div');
+  t2.style.color = 'var(--muted)'; t2.style.marginTop = '3px';
+  t2.textContent = 'Não foi possível gravar no servidor (' + code + ').';
+  txt.appendChild(t1); txt.appendChild(t2);
+  const fechar = document.createElement('button');
+  fechar.textContent = '✕';
+  fechar.style.cssText = 'background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px; line-height:1;';
+  fechar.onclick = clearSyncError;
+  syncAlertEl.appendChild(txt); syncAlertEl.appendChild(fechar);
+  syncAlertEl.style.display = 'flex';
+  console.error('[Kofre+] falha ao sincronizar:', err);
+}
+function clearSyncError(){ if(syncAlertEl) syncAlertEl.style.display = 'none'; }
+
 function toggleSyncHelp(){
   const el = document.getElementById('syncHelp');
   el.style.display = el.style.display==='block' ? 'none' : 'block';
@@ -809,7 +844,8 @@ function subscribeSync(){
         applyingRemote = true;
         db = base; migrateDB(); saveDB();
         applyingRemote = false;
-        firestoreDocRef.set({ payload: db, membros, updatedAt: Date.now(), updatedBy: deviceId }, { merge: true }).catch(()=>{});
+        firestoreDocRef.set({ payload: db, membros, updatedAt: Date.now(), updatedBy: deviceId }, { merge: true })
+          .then(clearSyncError).catch(showSyncError);
         buildSidebarPeriod(); buildInvNav(); renderNav(); renderBrand(); renderView();
         return;
       }
@@ -823,11 +859,12 @@ function subscribeSync(){
     applyingRemote = false;
     buildSidebarPeriod(); buildInvNav(); renderNav(); renderBrand(); renderView();
     setSyncStatus('Sincronizado agora ✓', true);
-  }, err=>{ setSyncStatus('Erro de sincronização: ' + err.message, false); });
+  }, err=>{ setSyncStatus('Erro de sincronização: ' + err.message, false); showSyncError(err); });
 }
 function pushToFirestore(){
   if(!firestoreDocRef || applyingRemote) return;
-  firestoreDocRef.set({ payload: db, updatedAt: Date.now(), updatedBy: deviceId }, { merge: true }).catch(()=>{});
+  firestoreDocRef.set({ payload: db, updatedAt: Date.now(), updatedBy: deviceId }, { merge: true })
+    .then(clearSyncError).catch(showSyncError);
 }
 
 /* =========================================================
