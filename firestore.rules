@@ -1,0 +1,69 @@
+/* Regras de segurança do Firestore — projeto painel-financeiro-35769 (Kofre+)
+ *
+ * Este arquivo é a FONTE DE VERDADE das regras. A publicação continua sendo
+ * manual: console do Firebase → Firestore Database → aba Regras → colar e
+ * publicar. Se mudar aqui, publique; se publicar, mude aqui. Regra publicada
+ * que não está neste arquivo é regra que ninguém revisa.
+ */
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* `membros` de um documento existente; [] quando o campo não existe,
+     * para a avaliação nunca estourar.
+     *
+     * ⚠️ Só pode ser chamada sobre `resource`, ou seja, documento que EXISTE.
+     * Em documento inexistente `resource` é nulo, a expressão falha e a
+     * leitura é negada. Foi exatamente isso que tornou a criação de família
+     * impossível até o commit 2bc09ba: o app fazia um get() para testar se o
+     * código estava livre, e consultar um código livre dava permission-denied.
+     * Não volte a usar leitura para testar existência neste projeto.
+     */
+    function membrosDe(doc) {
+      return ('membros' in doc.data) ? doc.data.membros : [];
+    }
+
+    function souMembro() {
+      return request.auth != null
+             && request.auth.token.email in membrosDe(resource);
+    }
+
+    match /familias/{codigo} {
+
+      /* Família nasce com exatamente um membro: quem está criando.
+       * Ninguém cria uma família já contendo terceiros.
+       * A unicidade do código é atômica aqui: código livre passa como create;
+       * código ocupado deixa de ser create, vira update alheio e é recusado —
+       * o app sorteia outro e tenta de novo.
+       */
+      allow create: if request.auth != null
+                    && request.resource.data.membros == [request.auth.token.email];
+
+      /* Ler e escrever exige JÁ estar em `membros`.
+       *
+       * ⚠️ NÃO existe cláusula de auto-inclusão, e não deve voltar a existir.
+       * A versão anterior (publicada em 27/07/2026) aceitava um update de
+       * quem não era membro desde que o array crescesse em 1 e incluísse o
+       * próprio e-mail. Consequência: qualquer pessoa logada que soubesse ou
+       * adivinhasse um código entrava sozinha na família e lia todo o
+       * histórico financeiro. Pior, a mesma escrita podia sobrescrever o
+       * `payload`, então dava para destruir os dados de uma família sem nunca
+       * ter tido acesso de leitura.
+       *
+       * Entrar numa família é ato de quem já está dentro:
+       * Config → Membros da família.
+       */
+      allow read:   if souMembro();
+      allow update: if souMembro();
+
+      /* O histórico da família não se apaga pelo cliente. */
+      allow delete: if false;
+    }
+
+    match /usuarios/{uid} {
+      /* Cada usuário só enxerga o próprio vínculo com a família. */
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
