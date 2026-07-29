@@ -24,9 +24,15 @@ service cloud.firestore {
       return ('membros' in doc.data) ? doc.data.membros : [];
     }
 
+    /* Aceita as duas grafias do e-mail de propósito. O app normaliza tudo para
+     * minúsculo antes de gravar, mas documentos criados antes disso guardam o
+     * e-mail exatamente como veio do Firebase Auth. Comparar só com a forma
+     * normalizada trancaria esses membros para fora da própria família.
+     */
     function souMembro() {
       return request.auth != null
-             && request.auth.token.email in membrosDe(resource);
+             && ( request.auth.token.email in membrosDe(resource)
+                  || request.auth.token.email.lower() in membrosDe(resource) );
     }
 
     match /familias/{codigo} {
@@ -38,7 +44,8 @@ service cloud.firestore {
        * o app sorteia outro e tenta de novo.
        */
       allow create: if request.auth != null
-                    && request.resource.data.membros == [request.auth.token.email];
+                    && ( request.resource.data.membros == [request.auth.token.email]
+                         || request.resource.data.membros == [request.auth.token.email.lower()] );
 
       /* Ler e escrever exige JÁ estar em `membros`.
        *

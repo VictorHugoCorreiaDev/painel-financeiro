@@ -865,14 +865,19 @@ function subscribeSync(){
       firstSnapshot = false;
       if(!docSnap.exists || !docSnap.data() || !docSnap.data().payload){
         const user = firebase.auth().currentUser;
-        const membros = user ? [user.email] : [];
         /* família sem payload nasce limpa, nunca com o que estiver neste
            navegador (ver basePadraoFamilia) */
         const base = basePadraoFamilia();
         applyingRemote = true;
         db = base; migrateDB(); saveDB();
         applyingRemote = false;
-        firestoreDocRef.set({ payload: db, membros, updatedAt: Date.now(), updatedBy: deviceId }, { merge: true })
+        const dados = { payload: db, updatedAt: Date.now(), updatedBy: deviceId };
+        /* `membros` só entra quando a família ainda NÃO existe. Se o documento
+           já existe e apenas está sem payload, reescrever a lista com o e-mail
+           de quem abriu o app derrubaria os outros membros sem aviso nenhum —
+           e as regras permitiriam, porque quem faz isso é membro legítimo. */
+        if(!docSnap.exists && user) dados.membros = [emailNormalizado(user.email)];
+        firestoreDocRef.set(dados, { merge: true })
           .then(clearSyncError).catch(showSyncError);
         buildSidebarPeriod(); buildInvNav(); renderNav(); renderBrand(); renderView();
         return;
@@ -909,6 +914,12 @@ function pushToFirestore(){
    MULTI-FAMÍLIA: cada usuário pertence a uma família (documento
    compartilhado); usuarios/{uid} guarda qual família é a dele.
    ========================================================= */
+/* Todo e-mail gravado em `membros` passa por aqui. Antes a criação da família
+   gravava `user.email` cru enquanto liberar um membro gravava em minúsculo: se
+   algum e-mail tivesse maiúscula, os dois caminhos divergiam e a pessoa era
+   liberada sem conseguir entrar. As regras do Firestore aceitam as duas formas
+   justamente para que documentos antigos, gravados crus, continuem valendo. */
+function emailNormalizado(e){ return (e||'').trim().toLowerCase(); }
 function slugify(s){
   return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
     .replace(/[^a-z0-9]+/g,'-').replace(/(^-+|-+$)/g,'') || 'familia';
@@ -968,7 +979,7 @@ function criarNovaFamilia(user, nome, tentativas){
      livre dá permission-denied e a criação nunca acontecia. Tentamos gravar
      direto — se o código já existir, a escrita deixa de ser `create` e vira
      `update` numa família alheia, que as regras recusam; aí sorteamos outro. */
-  ref.set({ payload: base, membros:[user.email], updatedAt: Date.now(), updatedBy: deviceId }).then(()=>{
+  ref.set({ payload: base, membros:[emailNormalizado(user.email)], updatedAt: Date.now(), updatedBy: deviceId }).then(()=>{
     /* o app local passa a refletir a base limpa que foi pro servidor, senão
        o próximo saveDB() empurraria a demo do navegador por cima dela */
     applyingRemote = true;
@@ -2116,7 +2127,7 @@ function renderMembros(){
 }
 function adicionarMembro(){
   const inp = document.getElementById('membroEmailInput');
-  const email = (inp.value||'').trim().toLowerCase();
+  const email = emailNormalizado(inp.value);
   if(!email || email.indexOf('@') < 1){ setMembrosStatus('Digite um e-mail válido.', false); return; }
   if(!firestoreDocRef){ setMembrosStatus('Você não está conectado a uma família.', false); return; }
   setMembrosStatus('Adicionando...');
