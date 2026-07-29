@@ -185,7 +185,8 @@
   .cf-row{ display:grid; grid-template-columns:1.2fr 1fr 70px 110px 1.5fr; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
   .cf-row .status{ font-size:12px; font-weight:700; text-align:right; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
 
-  .cat-row{ display:grid; grid-template-columns:1fr 1fr 40px; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
+  .cat-row{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 132px 40px; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
+  .cat-tipo-sel{ width:100%; padding:5px 8px; border-radius:7px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); font-size:12px; font-weight:600; }
 
   .empty{ color:var(--muted); font-size:13px; padding:18px 0; text-align:center; }
 
@@ -573,14 +574,24 @@
     <section class="view" id="view-categorias">
       <div class="topbar"><h2>Categorias</h2><div class="period">Motor de categorização automática</div></div>
       <div class="card">
-        <div style="font-size:12.5px; color:var(--muted); margin-bottom:14px;">Quando você lança uma despesa, o app procura estas palavras-chave dentro da descrição e categoriza sozinho.</div>
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:14px;">Quando você lança algo, o app procura estas palavras-chave dentro da descrição e categoriza sozinho. O <b style="color:var(--text)">tipo</b> decide em qual formulário a categoria aparece: só em Nova Receita, só em Nova Despesa, ou nos dois.</div>
         <div class="form-row">
           <div class="field"><label>Palavra-chave</label><input type="text" id="cKw" placeholder="uber"></div>
           <div class="field"><label>Categoria</label><input type="text" id="cCat" placeholder="Transporte"></div>
+          <div class="field" style="max-width:150px;"><label>Tipo</label><select id="cTipo">
+            <option value="despesa">Só despesa</option>
+            <option value="receita">Só receita</option>
+            <option value="ambos">Ambos</option>
+          </select></div>
           <button class="btn" onclick="addCategoriaKw()">+ Adicionar</button>
         </div>
+        <div class="filter-tabs" id="catFilter">
+          <button class="filter-tab active" data-f="todos">Todas</button>
+          <button class="filter-tab" data-f="receita">Receitas</button>
+          <button class="filter-tab" data-f="despesa">Despesas</button>
+        </div>
         <div class="cat-row cat-header" style="border-bottom:1px solid var(--border); font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">
-          <div>Palavra-chave</div><div>Categoria</div><div></div>
+          <div>Palavra-chave</div><div>Categoria</div><div>Tipo</div><div></div>
         </div>
         <div id="catTableWrap"></div>
       </div>
@@ -1038,12 +1049,38 @@ function setupOnboardingUI(user){
   };
 }
 
+/* Palpite de tipo para regras criadas antes desta funcionalidade existir.
+   Roda uma única vez por regra, na migração — depois o valor fica gravado e
+   quem manda é o que estiver escolhido na tela. */
+function tipoPalpite(c){
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  const cat = norm(c.cat), kw = norm(c.kw);
+  /* 'aporte' é saída de dinheiro mesmo dentro de uma categoria que também recebe */
+  if(kw==='aporte') return 'despesa';
+  if(['dividendo','rendimento','salario','freelance','bonus','restituicao'].includes(kw)) return 'receita';
+  if(['salario','renda extra','rendimentos'].includes(cat)) return 'receita';
+  /* Categorias que honestamente vão nos dois sentidos: 'Outros' é o balde de
+     fallback do categorize(), 'Empréstimo' entra quando você pega e sai quando
+     paga, e 'Investimentos' tem aporte de um lado e dividendo do outro. */
+  if(['outros','investimentos','emprestimo'].includes(cat)) return 'ambos';
+  return 'despesa';
+}
 function migrateDB(){
   db.anosExtras = db.anosExtras || [];
   db.config.tituloApp = db.config.tituloApp || 'Kofre+';
   db.config.subtitulo = db.config.subtitulo || 'Controle financeiro pra você e sua família';
   db.config.logoDataUrl = db.config.logoDataUrl || null;
   db.contasFixas = db.contasFixas || [];
+
+  /* Regra sem `tipo` é anterior a esta funcionalidade. Migrar tudo para 'ambos'
+     preservaria o comportamento antigo ao pé da letra, mas deixaria os dois
+     formulários idênticos até alguém editar as dezenas de linhas na mão — ou
+     seja, a funcionalidade nasceria desligada. Então classificamos por palpite
+     conservador: receita só o que é inequivocamente entrada, 'ambos' o que
+     honestamente vai nos dois sentidos, e o resto despesa, que é a esmagadora
+     maioria num app de finanças. Trocar o tipo é um clique na tela Categorias. */
+  db.categorias = db.categorias || [];
+  db.categorias.forEach(c=>{ if(!c.tipo) c.tipo = tipoPalpite(c); });
 
   db.carteira = db.carteira || { classes:[], precos:{}, posicoes:{}, dividendos:[] };
   db.carteira.classes = db.carteira.classes || [];
@@ -1070,22 +1107,36 @@ function migrateDB(){
 migrateDB();
 function nextId(arr){ return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
 
-function categorize(desc){
+/* Uma regra serve a um tipo quando é do mesmo tipo ou vale para 'ambos'.
+   Regra sem tipo é tratada como 'ambos' — ver migrateDB. */
+function regraServeAoTipo(c, tipo){
+  if(!tipo) return true;
+  return !c.tipo || c.tipo==='ambos' || c.tipo===tipo;
+}
+/* `tipo` é opcional ('receita' ou 'despesa'). Quando informado, só as regras
+   daquele tipo entram na busca — é o que impede uma categoria marcada como
+   despesa de ser aplicada a uma receita. Sem `tipo`, considera todas. */
+function categorize(desc, tipo){
   const d = (desc||'').toLowerCase();
-  for(const {kw,cat} of db.categorias){
-    if(kw && d.includes(kw.toLowerCase())) return cat;
+  for(const c of db.categorias){
+    if(!regraServeAoTipo(c, tipo)) continue;
+    if(c.kw && d.includes(c.kw.toLowerCase())) return c.cat;
   }
-  for(const cat of allCategoryNames()){
+  for(const cat of categoryNamesPorTipo(tipo)){
     if(cat && d.includes(cat.toLowerCase())) return cat;
   }
   return 'Outros';
 }
-function allCategoryNames(){
+function categoryNamesPorTipo(tipo){
   const set = new Set();
-  db.categorias.forEach(c=>set.add(c.cat));
-  Object.keys(db.orcamentos).forEach(c=>set.add(c));
+  db.categorias.forEach(c=>{ if(regraServeAoTipo(c, tipo)) set.add(c.cat); });
+  /* As categorias que só existem no orçamento entram apenas do lado da despesa:
+     orçamento é sobre gasto, e trazê-las para Nova Receita era parte do que
+     enchia aquele select de coisa que não é receita. */
+  if(tipo!=='receita') Object.keys(db.orcamentos).forEach(c=>set.add(c));
   return Array.from(set);
 }
+function allCategoryNames(){ return categoryNamesPorTipo(null); }
 const fmt = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
 const fmt0 = v => 'R$ ' + Math.round(v||0).toLocaleString('pt-BR');
 function formatValorInput(v){ return (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2}); }
@@ -1105,7 +1156,7 @@ function monthlyAgg(year){
     if(t.valor>=0){ months[idx].receita += t.valor; }
     else{
       months[idx].despesa += -t.valor;
-      const cat = categorize(t.desc);
+      const cat = categorize(t.desc, 'despesa');
       months[idx].porCategoria[cat] = (months[idx].porCategoria[cat]||0) + (-t.valor);
     }
   });
@@ -1352,13 +1403,19 @@ const PARCELA_RE = /^(.*) \((\d+)\/(\d+)\)$/;
 document.querySelectorAll('#lancFilter .filter-tab').forEach(b=>{
   b.onclick = ()=>{ lancFilter=b.dataset.f; editingLancId=null; document.querySelectorAll('#lancFilter .filter-tab').forEach(x=>x.classList.toggle('active', x===b)); renderLancamentos(); };
 });
+document.querySelectorAll('#catFilter .filter-tab').forEach(b=>{
+  b.onclick = ()=>{ catFilter=b.dataset.f; document.querySelectorAll('#catFilter .filter-tab').forEach(x=>x.classList.toggle('active', x===b)); renderCategorias(); };
+});
 let invSub = 'geral';
 function escAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
 
 function populateCategoriaSelects(){
-  const cats = allCategoryNames().sort();
-  const opts = '<option value="">Selecionar...</option>' + cats.map(c=>`<option value="${escAttr(c)}">${c}</option>`).join('');
-  ['rCat','dCat'].forEach(id=>{ const el = document.getElementById(id); if(el) el.innerHTML = opts; });
+  /* cada formulário recebe só as categorias do seu lado — é o tipo definido
+     em Categorias que decide isso */
+  const opcoes = tipo => '<option value="">Selecionar...</option>'
+    + categoryNamesPorTipo(tipo).sort().map(c=>`<option value="${escAttr(c)}">${c}</option>`).join('');
+  const r = document.getElementById('rCat'); if(r) r.innerHTML = opcoes('receita');
+  const d = document.getElementById('dCat'); if(d) d.innerHTML = opcoes('despesa');
 }
 function applyCategoriaAtalho(selectId, descId){
   const sel = document.getElementById(selectId);
@@ -1374,7 +1431,8 @@ function applyCategoriaAtalho(selectId, descId){
 }
 
 function rowHtml(t){
-  const cat = categorize(t.desc); const tipo = t.valor>=0?'Receita':'Despesa';
+  const tipo = t.valor>=0?'Receita':'Despesa';
+  const cat = categorize(t.desc, t.valor>=0?'receita':'despesa');
   const [y,m,d] = t.data.split('-');
   if(t.id===editingLancId){
     return `<tr>
@@ -1410,8 +1468,8 @@ function groupSummaryHtml(group){
   const items = group.items;
   const sumValor = items.reduce((s,t)=>s+t.valor,0);
   const first = items[0];
-  const cat = categorize(group.baseDesc);
   const tipo = sumValor>=0 ? 'Receita' : 'Despesa';
+  const cat = categorize(group.baseDesc, sumValor>=0?'receita':'despesa');
   const expanded = expandedGroupKeys.has(group.key);
   return `<tr style="background:var(--panel-2);">
     <td class="num">—</td>
@@ -1559,7 +1617,7 @@ function budgetGasto(year, month, cat){
   db.transacoes.forEach(t=>{
     const [y,m] = t.data.split('-').map(Number);
     if(y!==year || (m-1)!==month || t.valor>=0) return;
-    const mesmaCategoria = categorize(t.desc)===cat;
+    const mesmaCategoria = categorize(t.desc, 'despesa')===cat;
     const contaMenciona = (t.conta||'').toLowerCase().includes(catLower);
     if(mesmaCategoria || contaMenciona) total += -t.valor;
   });
@@ -1622,7 +1680,8 @@ let editingCFId = null;
 function renderContasFixas(){
   const wrap = document.getElementById('contasFixasWrap');
   const catSelect = document.getElementById('cfCategoria');
-  const cats = allCategoryNames().sort();
+  /* conta fixa é sempre gasto, então só categorias do lado da despesa */
+  const cats = categoryNamesPorTipo('despesa').sort();
   if(catSelect){
     catSelect.innerHTML = '<option value="">Categoria...</option>' + cats.map(c=>`<option value="${escAttr(c)}">${c}</option>`).join('');
   }
@@ -2054,27 +2113,53 @@ function renderCarteiraDistribuicao(wrap){
     </div>`;
 }
 
+let catFilter = 'todos';
+const TIPOS_CATEGORIA = [['despesa','Só despesa'],['receita','Só receita'],['ambos','Ambos']];
 function renderCategorias(){
   const wrap = document.getElementById('catTableWrap');
   if(!db.categorias.length){ wrap.innerHTML = '<div class="empty">Nenhuma palavra-chave cadastrada.</div>'; return; }
-  wrap.innerHTML = db.categorias.map((c,idx)=>`<div class="cat-row">
+  /* guarda o índice real antes de filtrar: excluir e trocar o tipo mexem em
+     db.categorias por posição, e a posição da lista filtrada não serve */
+  const linhas = db.categorias
+    .map((c,idx)=>({c, idx}))
+    .filter(({c})=> catFilter==='todos' ? true : regraServeAoTipo(c, catFilter));
+  if(!linhas.length){
+    wrap.innerHTML = '<div class="empty">Nenhuma palavra-chave desse tipo.</div>';
+    return;
+  }
+  wrap.innerHTML = linhas.map(({c,idx})=>`<div class="cat-row">
       <div><span class="mobile-label">Palavra-chave</span>${c.kw}</div>
       <div><span class="mobile-label">Categoria</span><span class="badge-cat"><span class="sw" style="background:${colorFor(c.cat)}"></span>${c.cat}</span></div>
+      <div><span class="mobile-label">Tipo</span><select class="cat-tipo-sel" onchange="setCategoriaTipo(${idx}, this.value)">${
+        TIPOS_CATEGORIA.map(([v,label])=>`<option value="${v}" ${(c.tipo||'ambos')===v?'selected':''}>${label}</option>`).join('')
+      }</select></div>
       <div><button class="btn danger-ghost" onclick="deleteCategoriaKw(${idx})" title="Excluir">×</button></div>
     </div>`).join('');
+}
+function setCategoriaTipo(idx, tipo){
+  const c = db.categorias[idx];
+  if(!c) return;
+  c.tipo = tipo;
+  saveDB();
+  /* os selects de lançamento e de conta fixa mudam junto, senão a alteração só
+     apareceria no próximo carregamento da tela */
+  populateCategoriaSelects();
+  renderCategorias();
 }
 function addCategoriaKw(){
   const kw = document.getElementById('cKw').value.trim().toLowerCase();
   const cat = document.getElementById('cCat').value.trim();
+  const tipo = document.getElementById('cTipo').value;
   if(!kw || !cat){ alert('Preencha palavra-chave e categoria.'); return; }
-  db.categorias.unshift({kw, cat});
+  db.categorias.unshift({kw, cat, tipo});
   saveDB();
   document.getElementById('cKw').value=''; document.getElementById('cCat').value='';
+  populateCategoriaSelects();
   renderCategorias();
 }
 function deleteCategoriaKw(idx){
   db.categorias.splice(idx,1);
-  saveDB(); renderCategorias();
+  saveDB(); populateCategoriaSelects(); renderCategorias();
 }
 
 /* ---- Membros da família ----
