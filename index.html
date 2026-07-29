@@ -704,6 +704,23 @@ function defaultDB(){
   };
 }
 
+/* Base com que uma família nova nasce: só configuração (categorias, classes
+   de ativos, metas), nunca dados. Antes gravávamos o `db` do navegador na
+   criação da família, o que fazia a base de demonstração — ou o que tivesse
+   sobrado de outra sessão naquele aparelho — virar o histórico financeiro
+   da pessoa. */
+function basePadraoFamilia(){
+  const base = defaultDB();
+  base.transacoes = [];
+  base.contasFixas = [];
+  base.carteira.precos = {};
+  base.carteira.posicoes = {};
+  base.carteira.classes.forEach(c=>{ base.carteira.posicoes[c.key] = []; });
+  base.carteira.dividendos = [];
+  Object.keys(base.orcamentos).forEach(k=>{ base.orcamentos[k] = 0; });
+  return base;
+}
+
 let firestoreDocRef = null;
 let applyingRemote = false;
 
@@ -786,7 +803,14 @@ function subscribeSync(){
       if(!docSnap.exists || !docSnap.data() || !docSnap.data().payload){
         const user = firebase.auth().currentUser;
         const membros = user ? [user.email] : [];
+        /* família sem payload nasce limpa, nunca com o que estiver neste
+           navegador (ver basePadraoFamilia) */
+        const base = basePadraoFamilia();
+        applyingRemote = true;
+        db = base; migrateDB(); saveDB();
+        applyingRemote = false;
         firestoreDocRef.set({ payload: db, membros, updatedAt: Date.now(), updatedBy: deviceId }, { merge: true }).catch(()=>{});
+        buildSidebarPeriod(); buildInvNav(); renderNav(); renderBrand(); renderView();
         return;
       }
     }
@@ -860,11 +884,18 @@ function criarNovaFamilia(user, nome, tentativas){
   const ref = firestore.collection('familias').doc(codigo);
   ref.get().then(snap=>{
     if(snap.exists){ criarNovaFamilia(user, nome, tentativas+1); return; }
-    ref.set({ payload: db, membros:[user.email], updatedAt: Date.now(), updatedBy: deviceId }).then(()=>{
+    const base = basePadraoFamilia();
+    ref.set({ payload: base, membros:[user.email], updatedAt: Date.now(), updatedBy: deviceId }).then(()=>{
+      /* o app local passa a refletir a base limpa que foi pro servidor, senão
+         o próximo saveDB() empurraria a demo do navegador por cima dela */
+      applyingRemote = true;
+      db = base; migrateDB(); saveDB();
+      applyingRemote = false;
       return firestore.collection('usuarios').doc(user.uid).set({ email:user.email, codigo });
     }).then(()=>{
       hideOnboarding();
       connectSync(syncCfg.firebaseConfig, codigo);
+      buildSidebarPeriod(); buildInvNav(); renderNav(); renderBrand(); renderView();
       alert('Família criada! Código: ' + codigo + '\n\nCompartilhe esse código com quem for usar o app com você — a pessoa escolhe "Entrar com código" no primeiro login (o código também aparece em Config → Sincronização).');
     }).catch(err=>{ errEl.textContent = 'Erro ao criar família: ' + err.message; });
   }).catch(err=>{ errEl.textContent = 'Erro ao verificar código: ' + err.message; });
