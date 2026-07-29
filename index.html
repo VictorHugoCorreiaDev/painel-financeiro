@@ -235,20 +235,12 @@
   input[type=date]::-webkit-calendar-picker-indicator{ margin-left:6px; padding:2px; }
   .field{ overflow:hidden; }
 
-  /* Scrollbars customizadas em todo o app */
-  *{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
-  ::-webkit-scrollbar{ width:7px; height:7px; }
-  ::-webkit-scrollbar-track{ background:transparent; }
-  ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; border:1px solid transparent; background-clip:padding-box; }
-  ::-webkit-scrollbar-thumb:hover{ background:var(--amber); }
-
-  /* Barras das áreas que rolam por dentro (tabelas e menu lateral) ficam
-     invisíveis: poluíam a interface sem informar muita coisa. A rolagem em si
-     continua funcionando por toque, trackpad, arrasto e shift+roda. A barra
-     principal da janela permanece — é ela que mostra o tamanho da página e
-     onde você está nela. */
-  .table-scroll, .sidebar{ scrollbar-width:none; -ms-overflow-style:none; }
-  .table-scroll::-webkit-scrollbar, .sidebar::-webkit-scrollbar{ width:0; height:0; display:none; }
+  /* Nenhuma barra de rolagem visível em lugar nenhum do app — incluindo a da
+     janela. A rolagem em si continua intacta: roda do mouse, toque, arrasto,
+     trackpad, teclado (setas, PageUp/Down, Home/End) e shift+roda para a
+     horizontal. Some só o desenho da barra. */
+  html, body, *{ scrollbar-width:none; -ms-overflow-style:none; }
+  ::-webkit-scrollbar{ width:0; height:0; display:none; }
 
   .split-forms{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; margin-bottom:16px; }
   .entry-card{ border-radius:14px; padding:18px 20px; border:1px solid var(--border); min-width:0; }
