@@ -609,6 +609,22 @@
       </div>
 
       <div class="card" style="max-width:460px;">
+        <h3>👥 Membros da família</h3>
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px; line-height:1.5;">
+          Quem está nesta lista enxerga e edita os mesmos lançamentos. Para convidar alguém,
+          adicione o e-mail aqui e depois passe o código da família — sem estar na lista,
+          ninguém entra, mesmo sabendo o código.
+        </div>
+        <div id="membrosLista" style="margin-bottom:12px;"></div>
+        <div class="field" style="margin-bottom:10px;">
+          <label>E-mail de quem você quer liberar</label>
+          <input type="email" id="membroEmailInput" placeholder="pessoa@email.com">
+        </div>
+        <button class="btn" onclick="adicionarMembro()">Adicionar membro</button>
+        <div id="membrosStatus" style="margin-top:10px; font-size:12.5px; font-weight:600;"></div>
+      </div>
+
+      <div class="card" style="max-width:460px;">
         <h3>🔄 Sincronização entre dispositivos</h3>
         <div style="font-size:12.5px; color:var(--muted); margin-bottom:10px; line-height:1.5;">
           Conecte um banco de dados gratuito (Firebase) pra você e sua esposa verem os mesmos lançamentos em tempo real, em qualquer aparelho.
@@ -884,14 +900,16 @@ function resolveFamiliaEConecta(user){
     }
     if(syncCfg && syncCfg.codigo){
       const codigo = syncCfg.codigo;
-      firestore.collection('familias').doc(codigo).set({
-        membros: firebase.firestore.FieldValue.arrayUnion(user.email)
-      }, { merge: true }).then(()=>{
-        return firestore.collection('usuarios').doc(user.uid).set({ email: user.email, codigo });
-      }).then(()=>{
-        connectSync(syncCfg.firebaseConfig, codigo);
+      /* mesmo princípio do entrarEmFamilia: nunca nos auto-adicionamos em
+         `membros`. Se o e-mail já foi liberado a leitura passa; se não, cai
+         no onboarding. */
+      firestore.collection('familias').doc(codigo).get().then(snap=>{
+        if(!snap.exists){ showOnboarding(user); return; }
+        return firestore.collection('usuarios').doc(user.uid).set({ email: user.email, codigo }).then(()=>{
+          connectSync(syncCfg.firebaseConfig, codigo);
+        });
       }).catch(err=>{
-        console.error('Falha ao migrar família automaticamente:', err);
+        console.error('Não foi possível reconectar à família automaticamente:', err);
         showOnboarding(user);
       });
       return;
@@ -940,14 +958,24 @@ function criarNovaFamilia(user, nome, tentativas){
 function entrarEmFamilia(user, codigo){
   const errEl = document.getElementById('onbError');
   const firestore = firebase.firestore();
-  firestore.collection('familias').doc(codigo).set({
-    membros: firebase.firestore.FieldValue.arrayUnion(user.email)
-  }, { merge: true }).then(()=>{
-    return firestore.collection('usuarios').doc(user.uid).set({ email:user.email, codigo });
-  }).then(()=>{
-    hideOnboarding();
-    connectSync(syncCfg.firebaseConfig, codigo);
-  }).catch(err=>{ errEl.textContent = 'Código inválido ou sem permissão: ' + err.message; });
+  /* Não adicionamos mais o próprio e-mail em `membros` aqui. Quem libera o
+     acesso é alguém que já está na família (Config → Membros da família);
+     saber o código deixou de bastar para entrar. Esta leitura só passa nas
+     regras se o e-mail já tiver sido liberado. */
+  firestore.collection('familias').doc(codigo).get().then(snap=>{
+    if(!snap.exists){
+      errEl.textContent = 'Não existe família com esse código. Confira com quem te convidou.';
+      return;
+    }
+    return firestore.collection('usuarios').doc(user.uid).set({ email:user.email, codigo }).then(()=>{
+      hideOnboarding();
+      connectSync(syncCfg.firebaseConfig, codigo);
+    });
+  }).catch(err=>{
+    errEl.textContent = (err && err.code === 'permission-denied')
+      ? 'Seu e-mail ainda não foi liberado nessa família. Peça para quem já usa o app te adicionar em Config → Membros da família.'
+      : 'Não foi possível entrar: ' + ((err && err.message) || err);
+  });
 }
 function setupOnboardingUI(user){
   if(onboardingWired) return;
@@ -2006,9 +2034,80 @@ function deleteCategoriaKw(idx){
   saveDB(); renderCategorias();
 }
 
+/* ---- Membros da família ----
+   Só quem já está em `membros` consegue mexer na lista — as regras do
+   Firestore garantem isso. É por aqui que um convite acontece: um membro
+   libera o e-mail e só então a pessoa consegue entrar com o código. Antes
+   qualquer um se auto-adicionava sabendo o código. */
+function setMembrosStatus(msg, ok){
+  const el = document.getElementById('membrosStatus'); if(!el) return;
+  el.textContent = msg || '';
+  el.style.color = ok===true ? 'var(--green)' : ok===false ? 'var(--coral)' : 'var(--muted)';
+}
+function renderMembros(){
+  const lista = document.getElementById('membrosLista'); if(!lista) return;
+  if(!firestoreDocRef){
+    lista.textContent = 'Conecte-se a uma família para ver os membros.';
+    lista.style.cssText = 'font-size:12.5px; color:var(--muted);';
+    return;
+  }
+  lista.style.cssText = '';
+  lista.textContent = 'Carregando...';
+  firestoreDocRef.get().then(snap=>{
+    const membros = (snap.exists && snap.data() && snap.data().membros) || [];
+    const meu = ((firebase.auth().currentUser || {}).email || '').toLowerCase();
+    lista.textContent = '';
+    if(!membros.length){ lista.textContent = 'Nenhum membro cadastrado.'; return; }
+    membros.forEach(email=>{
+      const souEu = (email||'').toLowerCase() === meu;
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--border); font-size:13px;';
+      const nome = document.createElement('div');
+      nome.style.flex = '1';
+      nome.textContent = email + (souEu ? ' (você)' : '');
+      row.appendChild(nome);
+      /* ninguém se remove sozinho — evita a família ficar sem dono */
+      if(!souEu){
+        const rm = document.createElement('button');
+        rm.className = 'btn secondary';
+        rm.textContent = 'Remover';
+        rm.style.cssText = 'padding:3px 9px; font-size:11.5px;';
+        rm.onclick = ()=> removerMembro(email);
+        row.appendChild(rm);
+      }
+      lista.appendChild(row);
+    });
+  }).catch(err=>{
+    lista.textContent = '';
+    setMembrosStatus('Não foi possível carregar os membros: ' + (err.code||err.message), false);
+  });
+}
+function adicionarMembro(){
+  const inp = document.getElementById('membroEmailInput');
+  const email = (inp.value||'').trim().toLowerCase();
+  if(!email || email.indexOf('@') < 1){ setMembrosStatus('Digite um e-mail válido.', false); return; }
+  if(!firestoreDocRef){ setMembrosStatus('Você não está conectado a uma família.', false); return; }
+  setMembrosStatus('Adicionando...');
+  firestoreDocRef.set({ membros: firebase.firestore.FieldValue.arrayUnion(email) }, { merge:true }).then(()=>{
+    inp.value = '';
+    const cod = (syncCfg && syncCfg.codigo) ? syncCfg.codigo : '';
+    setMembrosStatus('Liberado ✓ — agora passe o código ' + cod + ' para essa pessoa entrar.', true);
+    renderMembros();
+  }).catch(err=>{ setMembrosStatus('Não foi possível adicionar: ' + (err.code||err.message), false); });
+}
+function removerMembro(email){
+  if(!confirm('Remover ' + email + ' da família?\n\nA pessoa perde o acesso a estes lançamentos.')) return;
+  firestoreDocRef.set({ membros: firebase.firestore.FieldValue.arrayRemove(email) }, { merge:true }).then(()=>{
+    setMembrosStatus('Removido.', true);
+    renderMembros();
+  }).catch(err=>{ setMembrosStatus('Não foi possível remover: ' + (err.code||err.message), false); });
+}
+
 function renderConfig(){
   document.getElementById('cfgMeta').value = formatValorInput(db.config.metaEconomia);
   document.getElementById('cfgNome').value = db.config.nome;
+  setMembrosStatus('');
+  renderMembros();
   const loggedEl = document.getElementById('loggedInAs');
   if(loggedEl){
     const user = firebase.auth().currentUser;
