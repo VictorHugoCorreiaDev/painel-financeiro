@@ -933,27 +933,35 @@ let onboardingWired = false;
 function criarNovaFamilia(user, nome, tentativas){
   tentativas = tentativas || 0;
   const errEl = document.getElementById('onbError');
-  if(tentativas>=5){ errEl.textContent = 'Não foi possível gerar um código único. Tente outro nome.'; return; }
+  if(tentativas>=5){
+    errEl.textContent = 'Não foi possível criar a família. Tente outro nome — se o erro continuar, avise o administrador.';
+    return;
+  }
   const firestore = firebase.firestore();
   const codigo = slugify(nome) + '-' + Math.random().toString(36).slice(2,6);
   const ref = firestore.collection('familias').doc(codigo);
-  ref.get().then(snap=>{
-    if(snap.exists){ criarNovaFamilia(user, nome, tentativas+1); return; }
-    const base = basePadraoFamilia();
-    ref.set({ payload: base, membros:[user.email], updatedAt: Date.now(), updatedBy: deviceId }).then(()=>{
-      /* o app local passa a refletir a base limpa que foi pro servidor, senão
-         o próximo saveDB() empurraria a demo do navegador por cima dela */
-      applyingRemote = true;
-      db = base; migrateDB(); saveDB();
-      applyingRemote = false;
-      return firestore.collection('usuarios').doc(user.uid).set({ email:user.email, codigo });
-    }).then(()=>{
-      hideOnboarding();
-      connectSync(syncCfg.firebaseConfig, codigo);
-      buildSidebarPeriod(); buildInvNav(); renderNav(); renderBrand(); renderView();
-      alert('Família criada! Código: ' + codigo + '\n\nCompartilhe esse código com quem for usar o app com você — a pessoa escolhe "Entrar com código" no primeiro login (o código também aparece em Config → Sincronização).');
-    }).catch(err=>{ errEl.textContent = 'Erro ao criar família: ' + err.message; });
-  }).catch(err=>{ errEl.textContent = 'Erro ao verificar código: ' + err.message; });
+  const base = basePadraoFamilia();
+  /* Não dá pra checar colisão de código com um get(): as regras só liberam a
+     leitura de uma família da qual você já é membro, então consultar um código
+     livre dá permission-denied e a criação nunca acontecia. Tentamos gravar
+     direto — se o código já existir, a escrita deixa de ser `create` e vira
+     `update` numa família alheia, que as regras recusam; aí sorteamos outro. */
+  ref.set({ payload: base, membros:[user.email], updatedAt: Date.now(), updatedBy: deviceId }).then(()=>{
+    /* o app local passa a refletir a base limpa que foi pro servidor, senão
+       o próximo saveDB() empurraria a demo do navegador por cima dela */
+    applyingRemote = true;
+    db = base; migrateDB(); saveDB();
+    applyingRemote = false;
+    return firestore.collection('usuarios').doc(user.uid).set({ email:user.email, codigo });
+  }).then(()=>{
+    hideOnboarding();
+    connectSync(syncCfg.firebaseConfig, codigo);
+    buildSidebarPeriod(); buildInvNav(); renderNav(); renderBrand(); renderView();
+    alert('Família criada! Código: ' + codigo + '\n\nPara alguém entrar com você: adicione o e-mail da pessoa em Config → Membros da família e passe esse código.');
+  }).catch(err=>{
+    if(err && err.code === 'permission-denied'){ criarNovaFamilia(user, nome, tentativas+1); return; }
+    errEl.textContent = 'Erro ao criar família: ' + ((err && err.message) || err);
+  });
 }
 function entrarEmFamilia(user, codigo){
   const errEl = document.getElementById('onbError');
@@ -972,8 +980,10 @@ function entrarEmFamilia(user, codigo){
       connectSync(syncCfg.firebaseConfig, codigo);
     });
   }).catch(err=>{
+    /* código inexistente também cai em permission-denied (as regras não deixam
+       ler o que não é seu), e é bom que caia: não revela quais códigos existem */
     errEl.textContent = (err && err.code === 'permission-denied')
-      ? 'Seu e-mail ainda não foi liberado nessa família. Peça para quem já usa o app te adicionar em Config → Membros da família.'
+      ? 'Não foi possível entrar com esse código. Ou ele não existe, ou seu e-mail ainda não foi liberado — peça para quem já usa o app te adicionar em Config → Membros da família.'
       : 'Não foi possível entrar: ' + ((err && err.message) || err);
   });
 }
