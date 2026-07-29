@@ -242,6 +242,14 @@
   ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; border:1px solid transparent; background-clip:padding-box; }
   ::-webkit-scrollbar-thumb:hover{ background:var(--amber); }
 
+  /* Barras das áreas que rolam por dentro (tabelas e menu lateral) ficam
+     invisíveis: poluíam a interface sem informar muita coisa. A rolagem em si
+     continua funcionando por toque, trackpad, arrasto e shift+roda. A barra
+     principal da janela permanece — é ela que mostra o tamanho da página e
+     onde você está nela. */
+  .table-scroll, .sidebar{ scrollbar-width:none; -ms-overflow-style:none; }
+  .table-scroll::-webkit-scrollbar, .sidebar::-webkit-scrollbar{ width:0; height:0; display:none; }
+
   .split-forms{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; margin-bottom:16px; }
   .entry-card{ border-radius:14px; padding:18px 20px; border:1px solid var(--border); min-width:0; }
   .entry-card.income{ background:linear-gradient(180deg, rgba(91,217,122,.08), var(--panel) 60%); border-color:rgba(91,217,122,.35); }
