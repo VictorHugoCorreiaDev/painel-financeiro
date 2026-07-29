@@ -787,8 +787,13 @@ function setSyncStatus(msg, ok){
    pessoa só descobria ao abrir em outro aparelho. O #syncStatus não servia
    porque só aparece dentro da tela de Config. */
 let syncAlertEl = null;
-function showSyncError(err){
+/* `modo` separa falha de escrita de falha de leitura. As duas caíam na mesma
+   mensagem, que falava em "gravar" — e isso atrapalhou um diagnóstico real:
+   uma leitura negada acusava problema de gravação e mandava procurar no lugar
+   errado. */
+function showSyncError(err, modo){
   const code = (err && (err.code || err.message)) || 'erro desconhecido';
+  const leitura = modo === 'leitura';
   if(!syncAlertEl){
     syncAlertEl = document.createElement('div');
     syncAlertEl.style.cssText = 'position:fixed; left:50%; transform:translateX(-50%); bottom:16px;'
@@ -802,10 +807,14 @@ function showSyncError(err){
   const txt = document.createElement('div'); txt.style.flex = '1';
   const t1 = document.createElement('b');
   t1.style.color = 'var(--coral)';
-  t1.textContent = 'Alteração salva só neste aparelho';
+  t1.textContent = leitura
+    ? 'Mostrando dados só deste aparelho'
+    : 'Alteração salva só neste aparelho';
   const t2 = document.createElement('div');
   t2.style.color = 'var(--muted)'; t2.style.marginTop = '3px';
-  t2.textContent = 'Não foi possível gravar no servidor (' + code + ').';
+  t2.textContent = leitura
+    ? 'Não foi possível ler do servidor (' + code + '). O que está na tela pode estar desatualizado.'
+    : 'Não foi possível gravar no servidor (' + code + ').';
   txt.appendChild(t1); txt.appendChild(t2);
   const fechar = document.createElement('button');
   fechar.textContent = '✕';
@@ -847,6 +856,9 @@ function connectSync(cfg, codigo){
 function subscribeSync(){
   if(unsubscribeSnapshot) unsubscribeSnapshot();
   let firstSnapshot = true;
+  /* enquanto este aparelho ainda não aplicou nada do servidor, ele não pode
+     descartar snapshot algum — ver a guarda de eco mais abaixo */
+  let jaAplicouRemoto = false;
   unsubscribeSnapshot = firestoreDocRef.onSnapshot(docSnap=>{
     if(docSnap.metadata.hasPendingWrites) return;
     if(firstSnapshot){
@@ -867,15 +879,25 @@ function subscribeSync(){
       }
     }
     const remote = docSnap.data();
-    if(!remote || !remote.payload || remote.updatedBy===deviceId) return;
+    if(!remote || !remote.payload) return;
+    /* Guarda de eco: quando este aparelho grava, o Firestore devolve a própria
+       alteração e reaplicá-la causaria laço. Mas ela só pode valer DEPOIS que
+       já aplicamos algo do servidor. Na primeira leitura de cada sessão o
+       servidor é a fonte da verdade, e descartar por `updatedBy` deixava o app
+       preso: se a base local estivesse vazia e a última gravação remota fosse
+       deste mesmo aparelho, ele concluía "isso veio de mim, já tenho" e nunca
+       carregava os dados — a tela ficava zerada para sempre, com o histórico
+       intacto no servidor, sem erro nenhum. */
+    if(jaAplicouRemoto && remote.updatedBy===deviceId) return;
     applyingRemote = true;
     db = remote.payload;
     migrateDB();
     saveDB();
     applyingRemote = false;
+    jaAplicouRemoto = true;
     buildSidebarPeriod(); buildInvNav(); renderNav(); renderBrand(); renderView();
     setSyncStatus('Sincronizado agora ✓', true);
-  }, err=>{ setSyncStatus('Erro de sincronização: ' + err.message, false); showSyncError(err); });
+  }, err=>{ setSyncStatus('Erro de sincronização: ' + err.message, false); showSyncError(err, 'leitura'); });
 }
 function pushToFirestore(){
   if(!firestoreDocRef || applyingRemote) return;
