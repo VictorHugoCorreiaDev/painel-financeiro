@@ -109,6 +109,10 @@
   .card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px 20px; min-width:0; min-height:0; }
   .card h3{ font-size:13px; color:var(--muted); font-weight:600; margin-bottom:12px; text-transform:uppercase; letter-spacing:.04em; }
   .card + .card{ margin-top:16px; }
+  /* ...mas não dentro de uma grade: ali o espaçamento é o `gap`, e esse
+     margin-top empurrava para baixo todo card que não fosse o primeiro da
+     linha — era o que desalinhava os KPIs e os pares de row-a/row-b. */
+  .grid > .card + .card{ margin-top:0; }
 
   .kpi{ display:flex; flex-direction:column; gap:10px; }
   .kpi-top{ display:flex; justify-content:space-between; align-items:flex-start; }
