@@ -103,8 +103,13 @@
   .grid{ display:grid; gap:16px; min-width:0; }
   .grid > *{ min-width:0; min-height:0; }
   .kpis{ grid-template-columns:repeat(3,1fr); margin-bottom:16px; }
-  .row-a{ grid-template-columns:1.5fr 1fr; margin-bottom:16px; }
-  .row-b{ grid-template-columns:1.4fr 1fr; margin-bottom:16px; }
+  /* Mesma proporção nas duas linhas de propósito: com 1.5fr numa e 1.4fr na
+     outra, a emenda entre as colunas caía num x diferente em cada linha e os
+     cards da direita (Despesas — participação e Participação na base anual)
+     não se alinhavam entre si. Unificado em 1.4fr, e não em 1.5fr, porque
+     1.5fr estreitaria a coluna da direita da row-b, onde os seis anéis de
+     participação ficam lado a lado. */
+  .row-a, .row-b{ grid-template-columns:1.4fr 1fr; margin-bottom:16px; }
 
   .card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px 20px; min-width:0; min-height:0; }
   .card h3{ font-size:13px; color:var(--muted); font-weight:600; margin-bottom:12px; text-transform:uppercase; letter-spacing:.04em; }
@@ -142,12 +147,24 @@
   .bar-fill{ height:100%; border-radius:6px; }
   .bar-row .val{ text-align:right; font-family:'IBM Plex Mono',monospace; font-size:12px; }
 
-  .rings{ display:grid; grid-template-columns:repeat(6,1fr); gap:10px; }
-  .ring{ display:flex; flex-direction:column; align-items:center; gap:8px; }
-  .ring-circle{ width:54px; height:54px; border-radius:50%; display:flex; align-items:center; justify-content:center; position:relative; }
+  /* auto-fit em vez de 6 colunas fixas: os anéis têm 54px cravados, então
+     seis deles exigem 374px e o card da direita chega a ter 295px na faixa
+     logo acima de 980px — a fileira vazava para fora do card sem ninguém ver,
+     porque as barras de rolagem são escondidas. Agora ela quebra em duas. */
+  /* Duas mudanças que andam juntas. O 54px cravado do anel fazia seis deles
+     exigirem 374px, e o card da direita chega a 295px logo acima de 980px: a
+     fileira vazava para fora do card sem ninguém ver, porque as barras de
+     rolagem são escondidas. Agora o anel encolhe junto com a coluna (até 54px,
+     nunca mais), e o auto-fit só quebra a fileira quando encolher já não
+     resolve — o que mantém os seis lado a lado nas larguras usuais. */
+  .rings{ display:grid; grid-template-columns:repeat(auto-fit, minmax(44px, 1fr)); gap:10px; }
+  .ring{ display:flex; flex-direction:column; align-items:center; gap:8px; min-width:0; }
+  .ring-circle{ width:100%; max-width:54px; aspect-ratio:1; border-radius:50%; display:flex; align-items:center; justify-content:center; position:relative; }
   .ring-circle::before{ content:""; position:absolute; inset:6px; border-radius:50%; background:var(--panel); }
   .ring-circle b{ position:relative; font-size:11px; font-family:'IBM Plex Mono'; }
-  .ring-name{ font-size:10px; color:var(--muted); text-align:center; }
+  /* nome de categoria é uma palavra só ("Assinaturas") e, numa coluna estreita,
+     era ele que estourava a largura do anel — sem espaço, não tinha onde quebrar */
+  .ring-name{ font-size:10px; color:var(--muted); text-align:center; overflow-wrap:anywhere; }
 
   .chart-tall{ position:relative; height:220px; overflow:hidden; }
   .chart-tall canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
