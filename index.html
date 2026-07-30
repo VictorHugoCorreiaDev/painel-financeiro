@@ -1741,22 +1741,6 @@ function saveEditTransacao(id){
   renderLancamentos(); buildSidebarPeriod();
   if(state.view==='painel') renderPainel();
 }
-/* Data de hoje no formato do input. Montada a partir dos componentes locais, e
-   não por toISOString(), que devolve UTC — aqui em -03:00 isso viraria o dia
-   seguinte todo lançamento feito depois das 21h. */
-function hojeISO(){
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-/* Os formulários de lançamento já nascem com a data do dia: é a data da imensa
-   maioria dos lançamentos, e poupa um toque no celular — onde o campo vazio, no
-   Safari do iPhone, aparece em branco (o dd/mm/aaaa é placeholder de desktop). */
-function preencherDatasDeHoje(){
-  ['rData','dData'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el && !el.value) el.value = hojeISO();
-  });
-}
 function addReceita(){
   const data = document.getElementById('rData').value;
   const desc = document.getElementById('rDesc').value.trim();
@@ -2567,7 +2551,6 @@ function initApp(){
           buildSidebarPeriod();
           buildInvNav();
           renderView();
-          preencherDatasDeHoje();
           checkContasVencendoHoje();
           resolveFamiliaEConecta(user);
         } else {
