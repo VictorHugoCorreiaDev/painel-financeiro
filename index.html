@@ -1100,7 +1100,10 @@ function avisar(msg, opts){
     el.addEventListener('animationend', ()=>el.remove(), { once:true });
     setTimeout(()=>el.remove(), 400);
   };
-  fechar.onclick = sair;
+  /* opts.aoFechar só dispara no ✕, nunca quando o próprio app fecha o toast por
+     código: quem chama usa isso para saber que a pessoa dispensou o recado e
+     não trazê-lo de volta. */
+  fechar.onclick = ()=>{ sair(); if(o.aoFechar) o.aoFechar(); };
 
   el.appendChild(ic); el.appendChild(txt); el.appendChild(fechar);
   pilha.appendChild(el);
@@ -1318,6 +1321,9 @@ function subscribeSync(){
     applyingRemote = false;
     jaAplicouRemoto = true;
     buildSidebarPeriod(); buildInvNav(); renderNav(); renderBrand(); renderView();
+    /* agora com os dados do servidor: o aviso de conta vencida se corrige se
+       alguém da família tiver pago em outro aparelho */
+    checkContasVencidasOuHoje();
     setSyncStatus('Sincronizado agora ✓', true);
   }, err=>{ setSyncStatus('Erro de sincronização: ' + err.message, false); showSyncError(err, 'leitura'); });
 }
@@ -2146,24 +2152,76 @@ function contaFixaTransacao(cf, year, month){
     return t.desc.toLowerCase().includes(cf.nome.toLowerCase());
   });
 }
-let avisouVencimentoHoje = false;
-function checkContasVencendoHoje(){
-  if(avisouVencimentoHoje) return;
-  avisouVencimentoHoje = true;
+/* Aviso de conta fixa vencida ou vencendo hoje.
+
+   Antes o filtro era `diaVencimento === diaHoje`, o dia exato: quem abrisse o
+   app no dia 7 com a conta do dia 6 em aberto não via nada, justamente quando o
+   esquecimento já está custando juros. Agora entra tudo que venceu e continua
+   pendente no mês — o aviso só sai da frente quando a conta é marcada como paga.
+
+   Não some sozinho, porque aparece na abertura, quando a pessoa ainda está se
+   situando na tela. Se ela fechar no ✕, não volta nesta sessão: insistir depois
+   de dispensado é o caminho para ninguém mais ler aviso nenhum. */
+let avisoVencimento = null;      /* toast na tela agora */
+let avisoVencimentoChave = null; /* quais contas ele está mostrando */
+let avisoVencimentoDispensado = false;
+function checkContasVencidasOuHoje(){
+  if(avisoVencimentoDispensado) return;
   const hoje = new Date();
   const diaHoje = hoje.getDate();
-  const vencendoHoje = (db.contasFixas||[]).filter(cf =>
-    cf.diaVencimento===diaHoje && !contaFixaTransacao(cf, hoje.getFullYear(), hoje.getMonth())
-  );
-  if(vencendoHoje.length){
-    /* Sem duração: este recado aparece na abertura do app, quando a pessoa ainda
-       está se situando na tela — se sumisse em 4 segundos, passaria batido. Fica
-       até ela fechar. O ⚠️ saiu porque o ícone do próprio aviso já diz isso. */
-    avisar(vencendoHoje.length===1 ? 'Vence hoje: ' + vencendoHoje[0].nome
-                                   : vencendoHoje.length + ' contas vencem hoje',
-      { tipo:'info', duracao:0,
-        detalhe: vencendoHoje.length===1 ? null : vencendoHoje.map(cf=>cf.nome).join(', ') });
+  /* exige o dia: conta vinda de um JSON importado pode não ter, e sem isto ela
+     entraria na lista como "(dia undefined)" */
+  const pendentes = (db.contasFixas||[]).filter(cf =>
+    cf.diaVencimento && cf.diaVencimento <= diaHoje && !contaFixaTransacao(cf, hoje.getFullYear(), hoje.getMonth())
+  ).sort((a,b)=>a.diaVencimento-b.diaVencimento);
+
+  /* Esta função roda duas vezes: na abertura, com o que está salvo neste
+     aparelho, e de novo quando a primeira leitura do servidor chega. A chave
+     evita repintar à toa e, quando a lista muda, o aviso se corrige sozinho —
+     era isso que dava alarme falso de conta que alguém da família já tinha
+     pago em outro aparelho. */
+  const chave = pendentes.map(cf=>cf.id).join(',');
+  if(chave === avisoVencimentoChave) return;
+  avisoVencimentoChave = chave;
+  if(avisoVencimento){
+    /* sai da tela na hora, sem a animação de saída: a correção troca o texto no
+       lugar, e animar deixaria os dois recados quase iguais empilhados por um
+       instante — o que se lê como falha, não como atualização */
+    avisoVencimento.fechar();
+    avisoVencimento.el.remove();
+    avisoVencimento = null;
   }
+  if(!pendentes.length) return;
+
+  const vencidas = pendentes.filter(cf=>cf.diaVencimento < diaHoje);
+  const deHoje = pendentes.filter(cf=>cf.diaVencimento === diaHoje);
+  const total = pendentes.reduce((s,cf)=>s+(cf.valorEsperado||0), 0);
+  const lista = pendentes.map(cf=>`${cf.nome} (dia ${cf.diaVencimento})`).join(' · ');
+
+  let titulo, detalhe;
+  if(!vencidas.length){
+    titulo = deHoje.length===1 ? 'Vence hoje: ' + deHoje[0].nome
+                               : deHoje.length + ' contas vencem hoje';
+    detalhe = deHoje.length===1 ? fmt(deHoje[0].valorEsperado) : `${lista} — ${fmt(total)}`;
+  } else if(!deHoje.length && vencidas.length===1){
+    titulo = 'Conta vencida: ' + vencidas[0].nome;
+    detalhe = `Venceu dia ${vencidas[0].diaVencimento} — ${fmt(vencidas[0].valorEsperado)}`;
+  } else if(!deHoje.length){
+    titulo = vencidas.length + ' contas vencidas';
+    detalhe = `${lista} — ${fmt(total)}`;
+  } else {
+    titulo = `${vencidas.length} vencida${vencidas.length>1?'s':''} e ${deHoje.length} vencendo hoje`;
+    detalhe = `${lista} — ${fmt(total)}`;
+  }
+
+  /* Coral para vencida, turquesa para a que vence hoje: uma é problema, a outra
+     é lembrete. Pintar as duas de vermelho apaga a diferença. */
+  avisoVencimento = avisar(titulo, {
+    tipo: vencidas.length ? 'erro' : 'info',
+    duracao: 0,
+    detalhe,
+    aoFechar(){ avisoVencimentoDispensado = true; }
+  });
 }
 let editingCFId = null;
 function renderContasFixas(){
@@ -2910,7 +2968,9 @@ function initApp(){
           buildSidebarPeriod();
           buildInvNav();
           renderView();
-          checkContasVencendoHoje();
+          /* roda já com o que está salvo neste aparelho, para quem abre offline
+             não ficar sem aviso, e roda de novo quando o servidor responde */
+          checkContasVencidasOuHoje();
           resolveFamiliaEConecta(user);
         } else {
           if(loginScreen) loginScreen.classList.remove('hidden');
