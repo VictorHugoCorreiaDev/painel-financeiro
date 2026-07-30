@@ -199,8 +199,13 @@
   .form-row{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; align-items:flex-end; }
   .field{ display:flex; flex-direction:column; gap:5px; }
   .field label{ font-size:11px; color:var(--muted); font-weight:600; }
+  /* Altura cravada, e igual para todo campo: cada tipo tem uma altura própria
+     que o navegador calcula sozinho (o de data reserva espaço para o miolo
+     dd/mm/aaaa, o select para a seta), então um campo saía mais alto que o
+     vizinho — 2px no Chrome e mais de 6px no Safari do iPhone, onde o de data
+     ficava visivelmente mais gordo que os outros dentro do mesmo card. */
   .field input, .field select{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
-    padding:8px 10px; color:var(--text); font-size:13px; outline:none; min-width:120px; }
+    padding:8px 10px; color:var(--text); font-size:13px; outline:none; min-width:120px; height:34px; }
   .field input:focus, .field select:focus{ border-color:var(--amber); }
   .field textarea{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
     padding:9px 10px; color:var(--text); font-size:12px; font-family:'IBM Plex Mono',monospace; outline:none; resize:vertical; width:100%; }
@@ -226,8 +231,11 @@
   .orc-row{ display:grid; grid-template-columns:1fr 130px 1fr 90px 110px; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
   .orc-row .status{ font-size:12px; font-weight:700; text-align:right; }
   .mobile-label{ display:none; }
+  /* Mesma história da altura fixa dos .field: na linha de edição do lançamento
+     o campo de data e o select ficavam 2px mais altos que os de texto ao lado. */
   .orc-input{ background:var(--panel-2); border:1px solid var(--border); border-radius:7px; color:var(--text);
-    padding:6px 8px; font-size:13px; width:100%; font-family:'IBM Plex Mono'; }
+    padding:6px 8px; font-size:13px; width:100%; font-family:'IBM Plex Mono'; height:31px; }
+  input[type=date].orc-input{ background-position:right 8px center; }
 
   .cf-row{ display:grid; grid-template-columns:1.2fr 1fr 70px 110px 1.5fr; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
   .cf-row .status{ font-size:12px; font-weight:700; text-align:right; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
@@ -257,7 +265,9 @@
     background-image:url('icon-192.png'); background-size:cover; background-position:center; background-color:var(--bg); }
   .login-card h2{ text-align:center; font-size:18px; margin-bottom:2px; }
   .login-card .field label{ font-size:11.5px; }
-  .login-card .field input{ width:100%; font-size:15px; padding:10px 12px; }
+  /* height:auto porque o login tem fonte e respiro próprios — a altura fixa dos
+     campos do app apertaria estes. */
+  .login-card .field input{ width:100%; font-size:15px; padding:10px 12px; height:auto; }
   .login-card .btn{ margin-top:4px; }
   .login-error{ color:var(--coral); font-size:12.5px; text-align:center; min-height:16px; }
   .login-forgot{ text-align:center; color:var(--muted); font-size:12px; text-decoration:none; }
@@ -274,13 +284,35 @@
   input[type=number]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
   input[type=number]{ -moz-appearance:textfield; }
 
-  /* Inputs de data: recolorir o ícone de calendário pro tema escuro */
-  /* -webkit-min-logical-width evita que o Safari/iOS force uma largura interna
-     maior que o container, estourando o card no mobile */
+  /* Inputs de data.
+     -webkit-min-logical-width evita que o Safari/iOS force uma largura interna
+     maior que o container, estourando o card no mobile.
+     appearance:none é o que faz o iOS aceitar a altura e o border-radius que
+     pedimos: com o desenho nativo ligado ele impõe os dele, a caixa fica mais
+     alta que as vizinhas e o canto arredondado não fecha igual aos outros
+     campos. O miolo do valor também vem com margem própria lá, que empurrava o
+     texto para baixo — daí o margin:0. */
   input[type=date]{ color-scheme:dark; width:100%; max-width:100%; box-sizing:border-box; -webkit-min-logical-width:0; min-width:0;
-    text-align:left; padding-right:6px; }
-  input[type=date]::-webkit-date-and-time-value{ text-align:left; }
-  input[type=date]::-webkit-calendar-picker-indicator{ margin-left:6px; padding:2px; }
+    text-align:left; -webkit-appearance:none; appearance:none;
+    background-repeat:no-repeat; background-position:right 10px center; background-size:18px 18px; }
+  /* O miolo não pode empurrar nada para fora da caixa: sem isto o iOS mede a
+     data escrita por extenso ("30 de jul. de 2026"), fica mais largo que o
+     campo e joga o ícone do calendário para além da borda — onde o
+     overflow:hidden do .field o corta, e era por isso que a caixinha não
+     aparecia. Se a data não couber, ela reticencia em vez de expandir. */
+  input[type=date]::-webkit-date-and-time-value{ text-align:left; margin:0; line-height:normal;
+    min-width:0; max-width:100%; flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* O ícone do calendário é nosso, desenhado como background acima: o nativo
+     cada navegador mostra de um jeito (e no iPhone, com appearance:none, não
+     mostra nenhum). Aqui ele fica invisível mas continua no mesmo lugar, com a
+     mesma largura do desenho — então o clique nele ainda abre o calendário do
+     navegador no computador. No celular, o toque em qualquer ponto do campo já
+     abre o seletor nativo. */
+  input[type=date]::-webkit-calendar-picker-indicator{ opacity:0; margin:0; padding:0; width:18px; flex:0 0 auto; }
+  /* A cor do traço vai cravada porque var() não funciona dentro de url() —
+     são os mesmos --muted de cada tema (#8C93B8 no escuro, #5F6789 no claro). */
+  :root[data-tema="escuro"] input[type=date]{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238C93B8' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5.5' width='17' height='15' rx='2.5'/%3E%3Cpath d='M8 3.5v4M16 3.5v4M3.5 10.5h17'/%3E%3C/svg%3E"); }
+  :root[data-tema="claro"] input[type=date]{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235F6789' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5.5' width='17' height='15' rx='2.5'/%3E%3Cpath d='M8 3.5v4M16 3.5v4M3.5 10.5h17'/%3E%3C/svg%3E"); }
   .field{ overflow:hidden; }
 
   /* Nenhuma barra de rolagem visível em lugar nenhum do app — incluindo a da
@@ -369,7 +401,7 @@
     /* Formulários em coluna única, mais espaçados */
     .form-row{ flex-direction:column; align-items:stretch; gap:12px; }
     .field{ width:100%; }
-    .field input, .field select{ width:100%; min-width:0; padding:11px 12px; }
+    .field input, .field select{ width:100%; min-width:0; padding:11px 12px; height:44px; }
     .entry-card .field{ min-width:0; }
     .form-row > .btn{ width:100%; margin-top:2px; }
     .entry-card{ padding:16px 16px 18px; }
@@ -401,6 +433,11 @@
 
     /* Evita zoom automático do iOS ao focar em campos (exige fonte >=16px) */
     .field input, .field select, .orc-input, .year-add-row input, .brand-edit-row input, .login-card input{ font-size:16px; }
+    /* a fonte maior do mobile pede mais altura que os 31px do desktop */
+    .orc-input{ height:34px; }
+    /* o ícone acompanha o padding maior do mobile, para cair exatamente sobre o
+       indicador nativo invisível — é ele que recebe o clique */
+    .field input[type=date]{ background-position:right 12px center; }
   }
 </style>
 <script>
@@ -1704,6 +1741,22 @@ function saveEditTransacao(id){
   renderLancamentos(); buildSidebarPeriod();
   if(state.view==='painel') renderPainel();
 }
+/* Data de hoje no formato do input. Montada a partir dos componentes locais, e
+   não por toISOString(), que devolve UTC — aqui em -03:00 isso viraria o dia
+   seguinte todo lançamento feito depois das 21h. */
+function hojeISO(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+/* Os formulários de lançamento já nascem com a data do dia: é a data da imensa
+   maioria dos lançamentos, e poupa um toque no celular — onde o campo vazio, no
+   Safari do iPhone, aparece em branco (o dd/mm/aaaa é placeholder de desktop). */
+function preencherDatasDeHoje(){
+  ['rData','dData'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el && !el.value) el.value = hojeISO();
+  });
+}
 function addReceita(){
   const data = document.getElementById('rData').value;
   const desc = document.getElementById('rDesc').value.trim();
@@ -2514,6 +2567,7 @@ function initApp(){
           buildSidebarPeriod();
           buildInvNav();
           renderView();
+          preencherDatasDeHoje();
           checkContasVencendoHoje();
           resolveFamiliaEConecta(user);
         } else {
