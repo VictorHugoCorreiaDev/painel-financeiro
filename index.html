@@ -310,6 +310,10 @@
      escurece mais; usar este tom no --green estragaria o botão de receita,
      que precisa do verde mais claro para o rótulo escuro dele funcionar. */
   :root[data-tema="claro"] .pill.receita, :root[data-tema="claro"] .kpi-delta.up{ color:#1B7038; }
+  /* Mesmo problema no escuro, do outro lado: o coral sobre o proprio coral a
+     15% dava 4.23 em letra de 11px. Clareado só aqui — mudar o --coral mexeria
+     em valores, botoes e series de grafico sem necessidade. */
+  :root[data-tema="escuro"] .pill.despesa, :root[data-tema="escuro"] .kpi-delta.down{ color:#EE7B82; }
 
   .filter-tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:18px 0 12px; }
   .filter-tab{ padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:12.5px; font-weight:600; }
