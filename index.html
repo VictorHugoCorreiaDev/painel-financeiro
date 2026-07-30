@@ -276,6 +276,86 @@
   #onboardingScreen{ position:fixed; inset:0; background:var(--bg); z-index:240;
     display:flex; align-items:center; justify-content:center; padding:20px; }
   #onboardingScreen.hidden{ display:none; }
+
+  /* ===== AVISOS DO APP =====
+     No lugar de alert() e confirm() do navegador, que travam a página inteira,
+     têm cara de outro programa e no celular chegam a esconder o app atrás de
+     uma barra do sistema. Duas peças, com trabalhos diferentes:
+
+     .toast  — recado. Aparece no rodapé, some sozinho e não exige clique. Serve
+               para "Preencha data..." e "Dados importados.": informação que não
+               pede decisão nenhuma.
+     #dialogo — decisão. Escurece o fundo e espera resposta, porque a próxima
+               coisa que vai acontecer depende dela (excluir parcelas, remover
+               membro). Só aqui prender a pessoa se justifica.
+
+     A pilha do rodapé é a mesma que o aviso de falha de sincronização já usava,
+     então os dois nunca se sobrepõem — antes cada um se posicionava por conta. */
+  #avisos{ position:fixed; left:50%; transform:translateX(-50%); bottom:16px; z-index:9999;
+    width:min(560px,92vw); display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+  .toast{ pointer-events:auto; display:flex; gap:10px; align-items:flex-start;
+    background:var(--panel-2); border:1px solid var(--border); border-left:3px solid var(--muted);
+    color:var(--text); padding:12px 14px; border-radius:10px; font-size:13px; line-height:1.45;
+    box-shadow:0 8px 28px var(--sombra); animation:toast-entra .18s ease-out; }
+  .toast.erro{ border-left-color:var(--coral); } .toast.erro .toast-ic{ color:var(--coral); }
+  .toast.ok{ border-left-color:var(--green); }   .toast.ok .toast-ic{ color:var(--green); }
+  .toast.info{ border-left-color:var(--teal); }  .toast.info .toast-ic{ color:var(--teal); }
+  .toast-ic{ flex-shrink:0; margin-top:1px; }
+  .toast-ic svg{ width:16px; height:16px; display:block; }
+  .toast-txt{ flex:1; min-width:0; }
+  .toast-det{ color:var(--muted); font-size:12.5px; margin-top:3px; }
+  .toast-fechar{ background:none; border:none; color:var(--muted); font-size:15px; line-height:1;
+    padding:0 0 0 4px; flex-shrink:0; }
+  .toast-fechar:hover{ color:var(--text); }
+  .toast.saindo{ animation:toast-sai .16s ease-in forwards; }
+  @keyframes toast-entra{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+  @keyframes toast-sai{ to{ opacity:0; transform:translateY(6px); } }
+
+  #dialogo{ position:fixed; inset:0; z-index:9990; padding:20px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(6,9,20,.62); animation:dialogo-fundo .16s ease-out; }
+  :root[data-tema="claro"] #dialogo{ background:rgba(20,27,51,.42); }
+  #dialogo.hidden{ display:none; }
+  .dialogo-card{ width:100%; max-width:400px; background:var(--panel); border:1px solid var(--border);
+    border-radius:16px; padding:22px 22px 18px; box-shadow:0 18px 50px var(--sombra);
+    animation:dialogo-card .18s cubic-bezier(.2,.9,.3,1); }
+  .dialogo-topo{ display:flex; gap:12px; align-items:flex-start; }
+  /* mesmo selo dos formulários de lançamento: quadrado arredondado com o fundo
+     derivado da própria cor do ícone, então serve os dois temas sem valor cravado */
+  .dialogo-ic{ width:30px; height:30px; border-radius:9px; flex-shrink:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:color-mix(in srgb, currentColor 15%, transparent); }
+  .dialogo-ic svg{ width:18px; height:18px; }
+  .dialogo-card.perigo .dialogo-ic{ color:var(--coral); }
+  .dialogo-card.aviso .dialogo-ic{ color:var(--amber-texto); }
+  .dialogo-card h3{ font-size:15.5px; line-height:1.35; margin-bottom:6px; }
+  .dialogo-msg{ font-size:13.5px; line-height:1.5; color:var(--text); }
+  .dialogo-det{ color:var(--muted); font-size:12.5px; line-height:1.5; margin-top:8px; }
+  /* o código da família precisa ser lido letra por letra e ditado para alguém */
+  .dialogo-codigo{ font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:600;
+    color:var(--amber-texto); background:var(--panel-2); border:1px solid var(--border);
+    border-radius:8px; padding:8px 12px; margin:12px 0 4px; text-align:center; letter-spacing:.08em;
+    user-select:all; }
+  .dialogo-acoes{ display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+  .dialogo-acoes .btn{ margin:0; }
+  /* Borda transparente no botão principal para ele ter a mesma caixa do
+     secundário, que tem borda de verdade: empilhados no celular, um saía 2px
+     mais alto que o outro. */
+  .dialogo-acoes .btn:not(.secondary){ border:1px solid transparent; }
+  .btn.perigo{ background:var(--coral); color:#FFFFFF; }
+  /* O foco começa cravado num destes botões, então o anel precisa ser visível e
+     com a cara do app — o padrão do navegador é um traço preto ou branco que não
+     combina com nenhum dos dois temas. :focus-visible para não desenhar anel em
+     quem clicou com o mouse. */
+  .dialogo-acoes .btn:focus-visible, .toast-fechar:focus-visible{
+    outline:2px solid var(--amber); outline-offset:2px; }
+  @keyframes dialogo-fundo{ from{ opacity:0; } to{ opacity:1; } }
+  @keyframes dialogo-card{ from{ opacity:0; transform:translateY(12px) scale(.98); } to{ opacity:1; transform:none; } }
+  /* Quem prefere menos movimento no sistema não vê animação nenhuma. */
+  @media (prefers-reduced-motion: reduce){
+    .toast, #dialogo, .dialogo-card{ animation:none; }
+    .toast.saindo{ animation:none; opacity:0; }
+  }
   .onb-divider{ text-align:center; color:var(--muted); font-size:11.5px; margin:2px 0; }
   .onb-box{ display:flex; flex-direction:column; gap:8px; }
 
@@ -438,6 +518,14 @@
     /* o ícone acompanha o padding maior do mobile, para cair exatamente sobre o
        indicador nativo invisível — é ele que recebe o clique */
     .field input[type=date]{ background-position:right 12px center; }
+
+    /* O recado sobe acima da barra de gestos do aparelho. */
+    #avisos{ width:calc(100vw - 24px); bottom:calc(12px + env(safe-area-inset-bottom)); }
+    /* Botões largos e empilhados, do tamanho do dedo. column-reverse deixa a
+       ação principal em cima: é a que a pessoa procura, e no celular o alcance
+       do polegar não faz a ordem da esquerda para a direita valer nada. */
+    .dialogo-acoes{ flex-direction:column-reverse; gap:10px; margin-top:20px; }
+    .dialogo-acoes .btn{ width:100%; padding:13px 16px; }
   }
 </style>
 <script>
@@ -509,6 +597,10 @@ aplicarTema();
   </div>
 </div>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
+<!-- Pilha de recados do rodapé e caixa de decisão. aria-live faz o leitor de
+     tela anunciar o recado sem tirar o foco de onde a pessoa está. -->
+<div id="avisos" aria-live="polite"></div>
+<div id="dialogo" class="hidden" role="dialog" aria-modal="true"></div>
 <div class="mobile-topbar">
   <button class="hamburger" id="hamburgerBtn">☰</button>
   <div class="mt-title">Kofre+</div>
@@ -937,49 +1029,213 @@ function setSyncStatus(msg, ok){
   el.textContent = msg;
   el.style.color = ok===true ? 'var(--green)' : ok===false ? 'var(--coral)' : 'var(--muted)';
 }
+/* ===== AVISOS DO APP =====
+   Substituem alert() e confirm() do navegador. Ver o comentário do CSS para a
+   divisão de trabalho: avisar() é recado que some sozinho, confirmar() e
+   informar() são caixas que esperam resposta.
+
+   Tudo entra na tela por textContent, nunca por innerHTML: as mensagens levam
+   nome de conta, descrição de lançamento e e-mail digitados pela pessoa, e não
+   existe motivo para esse texto poder virar marcação. */
+const AVISO_ICONES = {
+  erro:  '<path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0z"/>',
+  ok:    '<path d="M20 6 9 17l-5-5"/>',
+  info:  '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6h.01"/>'
+};
+function svgTraco(tipo){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+    stroke-linecap="round" stroke-linejoin="round">${AVISO_ICONES[tipo]||AVISO_ICONES.info}</svg>`;
+}
+/* msg é a frase principal; opts.detalhe é a linha secundária, em cinza.
+   opts.duracao em ms, ou 0 para ficar até a pessoa fechar — reservado para
+   recado que ela precisa mesmo ver, como conta vencendo hoje. */
+function avisar(msg, opts){
+  const o = opts || {};
+  const tipo = o.tipo || 'info';
+  const pilha = document.getElementById('avisos');
+  if(!pilha){ console.log('[Kofre+]', msg); return null; }
+
+  const el = document.createElement('div');
+  el.className = 'toast ' + tipo;
+  /* assertive para erro: interrompe o leitor de tela, porque a ação que a pessoa
+     acabou de tentar não aconteceu e ela precisa saber agora */
+  el.setAttribute('role', tipo==='erro' ? 'alert' : 'status');
+
+  const ic = document.createElement('span');
+  ic.className = 'toast-ic';
+  ic.innerHTML = svgTraco(tipo);
+
+  const txt = document.createElement('div');
+  txt.className = 'toast-txt';
+  const linha = document.createElement('div');
+  linha.textContent = msg;
+  txt.appendChild(linha);
+  if(o.detalhe){
+    const det = document.createElement('div');
+    det.className = 'toast-det';
+    det.textContent = o.detalhe;
+    txt.appendChild(det);
+  }
+
+  const fechar = document.createElement('button');
+  fechar.className = 'toast-fechar';
+  fechar.type = 'button';
+  fechar.setAttribute('aria-label', 'Fechar aviso');
+  fechar.textContent = '✕';
+
+  let saindo = false;
+  const sair = ()=>{
+    if(saindo) return;
+    saindo = true;
+    clearTimeout(timer);
+    el.classList.add('saindo');
+    /* remove no fim da animação, e num timer de reserva porque animationend não
+       dispara com prefers-reduced-motion, onde não existe animação */
+    el.addEventListener('animationend', ()=>el.remove(), { once:true });
+    setTimeout(()=>el.remove(), 400);
+  };
+  fechar.onclick = sair;
+
+  el.appendChild(ic); el.appendChild(txt); el.appendChild(fechar);
+  pilha.appendChild(el);
+
+  /* erro fica um pouco mais: costuma ser uma frase a mais para ler, e é o
+     recado que a pessoa realmente precisa terminar de ler */
+  const duracao = o.duracao===0 ? 0 : (o.duracao || (tipo==='erro' ? 6000 : 4000));
+  const timer = duracao ? setTimeout(sair, duracao) : null;
+  return { fechar: sair, el };
+}
+
+/* Caixa que espera resposta. Devolve Promise<boolean> — daí os chamadores serem
+   async, já que confirm() do navegador era síncrono e estes não são.
+   opts: {titulo, detalhe, confirmar, cancelar, perigo, codigo, soOk} */
+let dialogoAberto = null;
+function abrirDialogo(msg, opts){
+  const o = opts || {};
+  const fundo = document.getElementById('dialogo');
+  /* Se já houver uma caixa aberta, a de trás é respondida como "não" antes de a
+     nova aparecer: nenhuma ação destrutiva escapa por uma caixa que sumiu. */
+  if(dialogoAberto) dialogoAberto(false);
+
+  const focoAnterior = document.activeElement;
+  const card = document.createElement('div');
+  card.className = 'dialogo-card' + (o.perigo ? ' perigo' : o.soOk ? '' : ' aviso');
+
+  const topo = document.createElement('div');
+  topo.className = 'dialogo-topo';
+  if(o.perigo || !o.soOk){
+    const selo = document.createElement('span');
+    selo.className = 'dialogo-ic';
+    selo.innerHTML = svgTraco(o.perigo ? 'erro' : 'info');
+    topo.appendChild(selo);
+  }
+  const corpo = document.createElement('div');
+  corpo.style.flex = '1';
+  if(o.titulo){
+    const h = document.createElement('h3');
+    h.textContent = o.titulo;
+    corpo.appendChild(h);
+  }
+  const p = document.createElement('div');
+  p.className = 'dialogo-msg';
+  p.textContent = msg;
+  corpo.appendChild(p);
+  if(o.codigo){
+    const cod = document.createElement('div');
+    cod.className = 'dialogo-codigo';
+    cod.textContent = o.codigo;
+    corpo.appendChild(cod);
+  }
+  if(o.detalhe){
+    const det = document.createElement('div');
+    det.className = 'dialogo-det';
+    det.textContent = o.detalhe;
+    corpo.appendChild(det);
+  }
+  topo.appendChild(corpo);
+
+  const acoes = document.createElement('div');
+  acoes.className = 'dialogo-acoes';
+  const btnCancelar = document.createElement('button');
+  btnCancelar.className = 'btn secondary';
+  btnCancelar.type = 'button';
+  btnCancelar.textContent = o.cancelar || 'Cancelar';
+  const btnOk = document.createElement('button');
+  btnOk.className = 'btn' + (o.perigo ? ' perigo' : '');
+  btnOk.type = 'button';
+  btnOk.textContent = o.confirmar || 'OK';
+  if(!o.soOk) acoes.appendChild(btnCancelar);
+  acoes.appendChild(btnOk);
+
+  card.appendChild(topo); card.appendChild(acoes);
+  fundo.textContent = '';
+  fundo.appendChild(card);
+  fundo.classList.remove('hidden');
+
+  return new Promise(resolve=>{
+    const responder = valor=>{
+      if(dialogoAberto !== responder) return;
+      dialogoAberto = null;
+      document.removeEventListener('keydown', naTecla, true);
+      fundo.classList.add('hidden');
+      fundo.textContent = '';
+      /* devolve o foco para o botão que abriu a caixa, senão quem navega por
+         teclado volta para o começo da página */
+      if(focoAnterior && focoAnterior.focus) focoAnterior.focus();
+      resolve(valor);
+    };
+    const naTecla = e=>{
+      if(e.key === 'Escape'){ e.preventDefault(); responder(false); return; }
+      if(e.key === 'Enter' && document.activeElement !== btnCancelar){ e.preventDefault(); responder(true); return; }
+      /* Tab preso entre os dois botões: fora da caixa não há nada para fazer
+         enquanto ela estiver aberta */
+      if(e.key === 'Tab' && !o.soOk){
+        e.preventDefault();
+        (document.activeElement === btnOk ? btnCancelar : btnOk).focus();
+      }
+    };
+    dialogoAberto = responder;
+    btnOk.onclick = ()=>responder(true);
+    btnCancelar.onclick = ()=>responder(false);
+    /* clique no fundo escuro é o mesmo que cancelar, e nunca o mesmo que
+       confirmar — errar o alvo não pode apagar nada */
+    fundo.onclick = e=>{ if(e.target === fundo) responder(false); };
+    document.addEventListener('keydown', naTecla, true);
+    /* numa ação destrutiva o foco começa em Cancelar: se a pessoa apertar espaço
+       ou Enter no reflexo, o que acontece é nada */
+    (o.perigo ? btnCancelar : btnOk).focus();
+  });
+}
+function confirmar(msg, opts){ return abrirDialogo(msg, Object.assign({ confirmar:'Confirmar' }, opts)); }
+function informar(msg, opts){ return abrirDialogo(msg, Object.assign({ soOk:true, confirmar:'Entendi' }, opts)); }
+
 /* Aviso global de falha de sincronização. Antes toda falha de escrita era
    engolida por um .catch(()=>{}) vazio: a alteração sumia sem explicação e a
    pessoa só descobria ao abrir em outro aparelho. O #syncStatus não servia
    porque só aparece dentro da tela de Config. */
-let syncAlertEl = null;
-/* `modo` separa falha de escrita de falha de leitura. As duas caíam na mesma
+/* Este aviso agora é um toast como os outros, na mesma pilha do rodapé — antes
+   se posicionava por conta e podia cair em cima de outro recado. Sem duração:
+   fica até a pessoa fechar ou até a sincronização voltar, porque avisa que os
+   dados dela podem estar só neste aparelho.
+
+   `modo` separa falha de escrita de falha de leitura. As duas caíam na mesma
    mensagem, que falava em "gravar" — e isso atrapalhou um diagnóstico real:
    uma leitura negada acusava problema de gravação e mandava procurar no lugar
    errado. */
+let syncAvisoEl = null;
 function showSyncError(err, modo){
   const code = (err && (err.code || err.message)) || 'erro desconhecido';
   const leitura = modo === 'leitura';
-  if(!syncAlertEl){
-    syncAlertEl = document.createElement('div');
-    syncAlertEl.style.cssText = 'position:fixed; left:50%; transform:translateX(-50%); bottom:16px;'
-      + 'z-index:9999; max-width:min(560px,92vw); background:var(--panel-2);'
-      + 'border:1px solid var(--coral); color:var(--text); padding:12px 14px; border-radius:10px;'
-      + 'font-size:13px; line-height:1.45; box-shadow:0 8px 28px rgba(0,0,0,.45);'
-      + 'display:flex; gap:10px; align-items:flex-start;';
-    document.body.appendChild(syncAlertEl);
-  }
-  syncAlertEl.textContent = '';
-  const txt = document.createElement('div'); txt.style.flex = '1';
-  const t1 = document.createElement('b');
-  t1.style.color = 'var(--coral)';
-  t1.textContent = leitura
-    ? 'Mostrando dados só deste aparelho'
-    : 'Alteração salva só neste aparelho';
-  const t2 = document.createElement('div');
-  t2.style.color = 'var(--muted)'; t2.style.marginTop = '3px';
-  t2.textContent = leitura
-    ? 'Não foi possível ler do servidor (' + code + '). O que está na tela pode estar desatualizado.'
-    : 'Não foi possível gravar no servidor (' + code + ').';
-  txt.appendChild(t1); txt.appendChild(t2);
-  const fechar = document.createElement('button');
-  fechar.textContent = '✕';
-  fechar.style.cssText = 'background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px; line-height:1;';
-  fechar.onclick = clearSyncError;
-  syncAlertEl.appendChild(txt); syncAlertEl.appendChild(fechar);
-  syncAlertEl.style.display = 'flex';
+  clearSyncError();
+  syncAvisoEl = avisar(
+    leitura ? 'Mostrando dados só deste aparelho' : 'Alteração salva só neste aparelho',
+    { tipo:'erro', duracao:0, detalhe: leitura
+        ? 'Não foi possível ler do servidor (' + code + '). O que está na tela pode estar desatualizado.'
+        : 'Não foi possível gravar no servidor (' + code + ').' }
+  );
   console.error('[Kofre+] falha ao sincronizar:', err);
 }
-function clearSyncError(){ if(syncAlertEl) syncAlertEl.style.display = 'none'; }
+function clearSyncError(){ if(syncAvisoEl){ syncAvisoEl.fechar(); syncAvisoEl = null; } }
 
 function toggleSyncHelp(){
   const el = document.getElementById('syncHelp');
@@ -1145,7 +1401,13 @@ function criarNovaFamilia(user, nome, tentativas){
     hideOnboarding();
     connectSync(syncCfg.firebaseConfig, codigo);
     buildSidebarPeriod(); buildInvNav(); renderNav(); renderBrand(); renderView();
-    alert('Família criada! Código: ' + codigo + '\n\nPara alguém entrar com você: adicione o e-mail da pessoa em Config → Membros da família e passe esse código.');
+    /* Caixa, e não recado de rodapé: o código é a única coisa que deixa outra
+       pessoa entrar nesta família, e sair da tela sem ler não é opção. */
+    informar('Família criada. Este é o código dela:', {
+      titulo: 'Tudo pronto',
+      codigo: codigo,
+      detalhe: 'Para alguém entrar com você: adicione o e-mail da pessoa em Config → Membros da família e passe esse código.'
+    });
   }).catch(err=>{
     if(err && err.code === 'permission-denied'){ criarNovaFamilia(user, nome, tentativas+1); return; }
     errEl.textContent = 'Erro ao criar família: ' + ((err && err.message) || err);
@@ -1371,7 +1633,7 @@ function buildSidebarPeriod(){
 function confirmAddYear(){
   const val = document.getElementById('yearAddInput').value;
   const y = parseInt(val, 10);
-  if(!y || y<1900 || y>3000){ alert('Digite um ano válido, ex: 2027.'); return; }
+  if(!y || y<1900 || y>3000){ avisar('Digite um ano válido, ex: 2027.', { tipo:'erro' }); return; }
   db.anosExtras = db.anosExtras || [];
   if(!db.anosExtras.includes(y)) db.anosExtras.push(y);
   saveDB();
@@ -1677,11 +1939,19 @@ function transacoesDoGrupo(key){
     return (m[1] + '||' + m[3] + '||' + (t.conta||'')) === key;
   });
 }
-function deleteGrupoTransacoes(key){
+/* async porque confirmar() devolve Promise — o confirm() do navegador era
+   síncrono e parava o mundo, este espera a resposta sem travar a página. */
+async function deleteGrupoTransacoes(key){
   const items = transacoesDoGrupo(key);
   if(!items.length) return;
   const baseDesc = items[0].desc.match(PARCELA_RE)[1];
-  if(!confirm(`Excluir todas as ${items.length} parcelas de "${baseDesc}"? Essa ação não pode ser desfeita.`)) return;
+  const ok = await confirmar(`Excluir todas as ${items.length} parcelas de "${baseDesc}"?`, {
+    titulo: 'Excluir parcelas',
+    detalhe: 'Essa ação não pode ser desfeita.',
+    confirmar: 'Excluir',
+    perigo: true
+  });
+  if(!ok) return;
   const ids = new Set(items.map(t=>t.id));
   db.transacoes = db.transacoes.filter(t=>!ids.has(t.id));
   expandedGroupKeys.delete(key);
@@ -1731,7 +2001,7 @@ function saveEditTransacao(id){
   const valorAbs = parseValorBR(document.getElementById('editValor_'+id).value);
   const conta = document.getElementById('editConta_'+id).value.trim();
   const tipo = document.getElementById('editTipo_'+id).value;
-  if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ alert('Preencha data, descrição e um valor válido.'); return; }
+  if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ avisar('Preencha data, descrição e um valor válido.', { tipo:'erro' }); return; }
   const t = db.transacoes.find(x=>x.id===id);
   if(!t) return;
   t.data = data; t.desc = desc; t.conta = conta;
@@ -1746,7 +2016,7 @@ function addReceita(){
   const desc = document.getElementById('rDesc').value.trim();
   const valorAbs = parseValorBR(document.getElementById('rValor').value);
   const conta = document.getElementById('rConta').value.trim();
-  if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ alert('Preencha data, descrição e um valor válido.'); return; }
+  if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ avisar('Preencha data, descrição e um valor válido.', { tipo:'erro' }); return; }
   db.transacoes.push({ id:nextId(db.transacoes), data, desc, valor:Math.abs(valorAbs), conta });
   saveDB();
   document.getElementById('rDesc').value=''; document.getElementById('rValor').value=''; document.getElementById('rConta').value='';
@@ -1769,7 +2039,7 @@ function addDespesa(){
   const conta = document.getElementById('dConta').value.trim();
   const parcelasRaw = parseInt(document.getElementById('dParcelas').value, 10);
   const parcelas = (parcelasRaw && parcelasRaw>1) ? parcelasRaw : 1;
-  if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ alert('Preencha data, descrição e um valor válido.'); return; }
+  if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ avisar('Preencha data, descrição e um valor válido.', { tipo:'erro' }); return; }
   for(let i=0; i<parcelas; i++){
     const dataParcela = i===0 ? data : addMonthsClamped(data, i);
     const descParcela = parcelas>1 ? `${desc} (${i+1}/${parcelas})` : desc;
@@ -1828,7 +2098,7 @@ function updateOrcamento(cat, val){
 function addOrcamentoCat(){
   const cat = document.getElementById('fOrcCat').value.trim();
   const val = parseValorBR(document.getElementById('fOrcVal').value)||0;
-  if(!cat){ alert('Digite o nome da categoria.'); return; }
+  if(!cat){ avisar('Digite o nome da categoria.', { tipo:'erro' }); return; }
   db.orcamentos[cat] = val;
   saveDB();
   document.getElementById('fOrcCat').value=''; document.getElementById('fOrcVal').value='';
@@ -1853,7 +2123,13 @@ function checkContasVencendoHoje(){
     cf.diaVencimento===diaHoje && !contaFixaTransacao(cf, hoje.getFullYear(), hoje.getMonth())
   );
   if(vencendoHoje.length){
-    alert('⚠️ Vence hoje: ' + vencendoHoje.map(cf=>cf.nome).join(', '));
+    /* Sem duração: este recado aparece na abertura do app, quando a pessoa ainda
+       está se situando na tela — se sumisse em 4 segundos, passaria batido. Fica
+       até ela fechar. O ⚠️ saiu porque o ícone do próprio aviso já diz isso. */
+    avisar(vencendoHoje.length===1 ? 'Vence hoje: ' + vencendoHoje[0].nome
+                                   : vencendoHoje.length + ' contas vencem hoje',
+      { tipo:'info', duracao:0,
+        detalhe: vencendoHoje.length===1 ? null : vencendoHoje.map(cf=>cf.nome).join(', ') });
   }
 }
 let editingCFId = null;
@@ -1903,7 +2179,7 @@ function addContaFixa(){
   const valorEsperado = parseValorBR(document.getElementById('cfValor').value);
   const diaVencimento = parseInt(document.getElementById('cfDia').value, 10);
   if(!nome || !categoria || isNaN(valorEsperado) || valorEsperado<0 || !diaVencimento || diaVencimento<1 || diaVencimento>31){
-    alert('Preencha nome, categoria, valor e um dia de vencimento válido (1-31).'); return;
+    avisar('Preencha nome, categoria, valor e um dia de vencimento válido (1-31).', { tipo:'erro' }); return;
   }
   db.contasFixas.push({ id:nextId(db.contasFixas), nome, categoria, valorEsperado, diaVencimento });
   saveDB();
@@ -1922,7 +2198,7 @@ function saveEditContaFixa(id){
   const diaVencimento = parseInt(document.getElementById('editCfDia_'+id).value, 10);
   const valorEsperado = parseValorBR(document.getElementById('editCfValor_'+id).value);
   if(!nome || !categoria || isNaN(valorEsperado) || valorEsperado<0 || !diaVencimento || diaVencimento<1 || diaVencimento>31){
-    alert('Preencha nome, categoria, valor e um dia de vencimento válido (1-31).'); return;
+    avisar('Preencha nome, categoria, valor e um dia de vencimento válido (1-31).', { tipo:'erro' }); return;
   }
   const cf = db.contasFixas.find(c=>c.id===id);
   if(!cf) return;
@@ -1944,12 +2220,18 @@ function marcarContaFixaPaga(id){
   buildSidebarPeriod();
   if(state.view==='painel') renderPainel();
 }
-function desmarcarContaFixaPaga(id){
+async function desmarcarContaFixaPaga(id){
   const cf = db.contasFixas.find(c=>c.id===id);
   if(!cf) return;
   const trans = contaFixaTransacao(cf, state.year, state.month);
   if(!trans) return;
-  if(!confirm(`Remover o lançamento de "${trans.desc}" (${fmt(trans.valor)}) e marcar como pendente de novo?`)) return;
+  const ok = await confirmar(`Remover o lançamento de "${trans.desc}" (${fmt(trans.valor)})?`, {
+    titulo: 'Marcar como pendente',
+    detalhe: 'A conta volta para pendente e o lançamento sai das contas do mês.',
+    confirmar: 'Remover',
+    perigo: true
+  });
+  if(!ok) return;
   db.transacoes = db.transacoes.filter(t=>t.id!==trans.id);
   saveDB();
   renderContasFixas();
@@ -2005,8 +2287,8 @@ function buildInvNav(){
 function confirmAddClasse(){
   const input = document.getElementById('invClassAddInput');
   const label = input.value.trim();
-  if(!label){ alert('Digite um nome pra classe, ex: Criptomoedas.'); return; }
-  if(db.carteira.classes.some(c=>c.label.toLowerCase()===label.toLowerCase())){ alert('Já existe uma classe com esse nome.'); return; }
+  if(!label){ avisar('Digite um nome pra classe, ex: Criptomoedas.', { tipo:'erro' }); return; }
+  if(db.carteira.classes.some(c=>c.label.toLowerCase()===label.toLowerCase())){ avisar('Já existe uma classe com esse nome.', { tipo:'erro' }); return; }
   const existingKeys = db.carteira.classes.map(c=>c.key);
   let base = slugify(label) || 'classe', key = base, n = 2;
   while(existingKeys.includes(key)){ key = base + '-' + n; n++; }
@@ -2018,8 +2300,14 @@ function confirmAddClasse(){
   buildInvNav(); renderInvestimentos();
 }
 document.getElementById('invClassAddInput').addEventListener('keydown', e=>{ if(e.key==='Enter') confirmAddClasse(); });
-function removeClasse(key){
-  if(!confirm('Remover essa classe de ativos? Só é possível remover classes sem aportes cadastrados.')) return;
+async function removeClasse(key){
+  const ok = await confirmar('Remover essa classe de ativos?', {
+    titulo: 'Remover classe',
+    detalhe: 'Só é possível remover classes sem aportes cadastrados.',
+    confirmar: 'Remover',
+    perigo: true
+  });
+  if(!ok) return;
   db.carteira.classes = db.carteira.classes.filter(c=>c.key!==key);
   delete db.carteira.posicoes[key];
   if(invSub===key) invSub = 'geral';
@@ -2201,7 +2489,7 @@ function addAporte(classe){
   const cotas = parseValorBR(document.getElementById('apCotas').value);
   const valorCota = parseValorBR(document.getElementById('apValorCota').value);
   if(!ticker || isNaN(cotas) || cotas<=0 || isNaN(valorCota) || valorCota<0){
-    alert('Preencha o ativo, a quantidade de cotas e o valor da cota.'); return;
+    avisar('Preencha o ativo, a quantidade de cotas e o valor da cota.', { tipo:'erro' }); return;
   }
   const arr = db.carteira.posicoes[classe];
   arr.push({ id:nextId(arr), ticker, segmento, data, cotas, valorCota });
@@ -2251,7 +2539,7 @@ function addDividendo(){
   const ticker = document.getElementById('divTicker').value.trim();
   const data = document.getElementById('divData').value;
   const valor = parseValorBR(document.getElementById('divValor').value);
-  if(!ticker || !data || isNaN(valor) || valor<=0){ alert('Preencha ativo, data e valor.'); return; }
+  if(!ticker || !data || isNaN(valor) || valor<=0){ avisar('Preencha ativo, data e valor.', { tipo:'erro' }); return; }
   db.carteira.dividendos.push({ id:nextId(db.carteira.dividendos), ticker, data, valor });
   saveDB();
   ['divTicker','divData','divValor'].forEach(id=>{ document.getElementById(id).value=''; });
@@ -2330,7 +2618,7 @@ function addCategoriaKw(){
   const kw = document.getElementById('cKw').value.trim().toLowerCase();
   const cat = document.getElementById('cCat').value.trim();
   const tipo = document.getElementById('cTipo').value;
-  if(!kw || !cat){ alert('Preencha palavra-chave e categoria.'); return; }
+  if(!kw || !cat){ avisar('Preencha palavra-chave e categoria.', { tipo:'erro' }); return; }
   db.categorias.unshift({kw, cat, tipo});
   saveDB();
   document.getElementById('cKw').value=''; document.getElementById('cCat').value='';
@@ -2403,8 +2691,14 @@ function adicionarMembro(){
     renderMembros();
   }).catch(err=>{ setMembrosStatus('Não foi possível adicionar: ' + (err.code||err.message), false); });
 }
-function removerMembro(email){
-  if(!confirm('Remover ' + email + ' da família?\n\nA pessoa perde o acesso a estes lançamentos.')) return;
+async function removerMembro(email){
+  const ok = await confirmar('Remover ' + email + ' da família?', {
+    titulo: 'Remover membro',
+    detalhe: 'A pessoa perde o acesso a estes lançamentos.',
+    confirmar: 'Remover',
+    perigo: true
+  });
+  if(!ok) return;
   firestoreDocRef.set({ membros: firebase.firestore.FieldValue.arrayRemove(email) }, { merge:true }).then(()=>{
     setMembrosStatus('Removido.', true);
     renderMembros();
@@ -2435,7 +2729,7 @@ function saveConfig(){
   db.config.nome = document.getElementById('cfgNome').value.trim();
   saveDB();
   if(state.view==='painel') renderPainel();
-  alert('Configurações salvas.');
+  avisar('Configurações salvas.', { tipo:'ok' });
 }
 function exportarDados(){
   const blob = new Blob([JSON.stringify(db,null,2)], {type:'application/json'});
@@ -2446,8 +2740,8 @@ function importarDados(ev){
   const file = ev.target.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = e=>{
-    try{ const parsed = JSON.parse(e.target.result); db = parsed; migrateDB(); saveDB(); buildSidebarPeriod(); buildInvNav(); renderView(); alert('Dados importados.'); }
-    catch(err){ alert('Arquivo inválido.'); }
+    try{ const parsed = JSON.parse(e.target.result); db = parsed; migrateDB(); saveDB(); buildSidebarPeriod(); buildInvNav(); renderView(); avisar('Dados importados.', { tipo:'ok' }); }
+    catch(err){ avisar('Arquivo inválido.', { tipo:'erro', detalhe:'Escolha o arquivo .json que o próprio app exportou.' }); }
   };
   reader.readAsText(file);
 }
@@ -2597,7 +2891,7 @@ document.getElementById('brandEditBtn').addEventListener('click', ()=>{
 });
 document.getElementById('brandImgInput').addEventListener('change', ev=>{
   const file = ev.target.files[0]; if(!file) return;
-  if(file.size > 1.5*1024*1024){ alert('Escolha uma imagem menor (até ~1,5MB) para não pesar o armazenamento local.'); return; }
+  if(file.size > 1.5*1024*1024){ avisar('Escolha uma imagem menor, de até ~1,5MB.', { tipo:'erro', detalhe:'Imagem grande pesa no armazenamento local do navegador.' }); return; }
   const reader = new FileReader();
   reader.onload = e=>{ db.config.logoDataUrl = e.target.result; saveDB(); renderBrand(); };
   reader.readAsDataURL(file);
