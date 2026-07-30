@@ -2050,7 +2050,19 @@ function addDespesa(){
   renderLancamentos(); buildSidebarPeriod();
   if(state.view==='painel') renderPainel();
 }
-function deleteTransacao(id){
+/* Pergunta igual à exclusão do grupo de parcelas: era o único × da lista que
+   apagava direto, e nada aqui tem como voltar. A pergunta mostra descrição e
+   valor porque na lista os × ficam empilhados e um erro de linha é fácil. */
+async function deleteTransacao(id){
+  const alvo = db.transacoes.find(t=>t.id===id);
+  if(!alvo) return;
+  const ok = await confirmar(`Excluir "${alvo.desc}" (${fmt(alvo.valor)})?`, {
+    titulo: 'Excluir lançamento',
+    detalhe: 'Essa ação não pode ser desfeita.',
+    confirmar: 'Excluir',
+    perigo: true
+  });
+  if(!ok) return;
   db.transacoes = db.transacoes.filter(t=>t.id!==id);
   saveDB(); renderLancamentos(); buildSidebarPeriod();
 }
@@ -2186,7 +2198,19 @@ function addContaFixa(){
   document.getElementById('cfNome').value=''; document.getElementById('cfValor').value=''; document.getElementById('cfDia').value='';
   renderContasFixas();
 }
-function deleteContaFixa(id){
+async function deleteContaFixa(id){
+  const cf = db.contasFixas.find(c=>c.id===id);
+  if(!cf) return;
+  /* O detalhe existe para tirar um medo real: apagar a conta fixa não desfaz
+     nada do que já foi pago. O lançamento de cada mês marcado como pago é uma
+     linha independente em transacoes e continua lá. */
+  const ok = await confirmar(`Excluir a conta fixa "${cf.nome}"?`, {
+    titulo: 'Excluir conta fixa',
+    detalhe: 'Ela deixa de aparecer em todos os meses. Os lançamentos dos meses já marcados como pagos continuam.',
+    confirmar: 'Excluir',
+    perigo: true
+  });
+  if(!ok) return;
   db.contasFixas = db.contasFixas.filter(c=>c.id!==id);
   saveDB(); renderContasFixas();
 }
@@ -2498,7 +2522,18 @@ function addAporte(classe){
   ['apTicker','apSegmento','apData','apCotas','apValorCota'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   renderInvestimentos();
 }
-function deleteAporte(classe, id){
+async function deleteAporte(classe, id){
+  const ap = (db.carteira.posicoes[classe]||[]).find(p=>p.id===id);
+  if(!ap) return;
+  /* Cotas e valor da cota no detalhe porque a tabela lista vários aportes do
+     mesmo ativo, e só o ticker não diz qual linha é. */
+  const ok = await confirmar(`Excluir este aporte de ${ap.ticker}?`, {
+    titulo: 'Excluir aporte',
+    detalhe: `${ap.cotas} cota(s) a ${fmt(ap.valorCota)}. O preço médio do ativo é recalculado sem ele.`,
+    confirmar: 'Excluir',
+    perigo: true
+  });
+  if(!ok) return;
   db.carteira.posicoes[classe] = db.carteira.posicoes[classe].filter(p=>p.id!==id);
   saveDB(); renderInvestimentos();
 }
@@ -2545,7 +2580,16 @@ function addDividendo(){
   ['divTicker','divData','divValor'].forEach(id=>{ document.getElementById(id).value=''; });
   renderInvestimentos();
 }
-function deleteDividendo(id){
+async function deleteDividendo(id){
+  const dv = (db.carteira.dividendos||[]).find(d=>d.id===id);
+  if(!dv) return;
+  const ok = await confirmar(`Excluir o dividendo de ${dv.ticker} (${fmt(dv.valor)})?`, {
+    titulo: 'Excluir dividendo',
+    detalhe: 'Essa ação não pode ser desfeita.',
+    confirmar: 'Excluir',
+    perigo: true
+  });
+  if(!ok) return;
   db.carteira.dividendos = db.carteira.dividendos.filter(d=>d.id!==id);
   saveDB(); renderInvestimentos();
 }
