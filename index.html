@@ -18,11 +18,37 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
 <style>
+  /* Tema escuro é o padrão — é como o app sempre foi, então quem não mexer em
+     nada continua vendo exatamente isto. O claro entra por [data-tema="claro"]
+     no <html>, resolvido em JS (ver aplicarTema): assim "automático" não exige
+     duplicar a paleta dentro de um @media, e o Chart.js pode simplesmente ler
+     as variáveis já resolvidas. */
   :root{
     --bg:#0D1326; --panel:#151D38; --panel-2:#1B2444; --panel-3:#202B52; --border:#28315A;
     --text:#E9ECF7; --muted:#8C93B8;
     --amber:#E8A33D; --teal:#3FC1C9; --coral:#E8636B; --violet:#B47EE5;
     --green:#5BD97A; --blue:#4FA8E0; --periwinkle:#7C83FD;
+    --grid-linha:#1F2847;   /* linhas de grade dos gráficos */
+    --track:#232C50;        /* parte não preenchida dos anéis e barras */
+    --sombra:rgba(0,0,0,.45);
+    /* O âmbar faz dois papéis: fundo de botão (onde o texto é quase preto) e
+       cor de texto (aba ativa, item de menu ativo, links). Escurecer um único
+       tom serviria a um e estragaria o outro, então o papel de texto tem a sua
+       própria variável. No escuro os dois são o mesmo tom — nada muda. */
+    --amber-texto:#E8A33D;
+  }
+  :root[data-tema="claro"]{
+    --bg:#F4F6FB; --panel:#FFFFFF; --panel-2:#EEF1F8; --panel-3:#E3E8F3; --border:#D5DCEA;
+    --text:#141B33; --muted:#5F6789;
+    /* Os acentos escurecem no claro por contraste: os tons originais foram
+       escolhidos para brilhar sobre fundo escuro e, sobre branco, viram texto
+       ilegível — o verde #5BD97A dá menos de 2:1 num valor de saldo. */
+    --amber:#B87613; --teal:#17868F; --coral:#C0262F; --violet:#8B4BD0;
+    --green:#2E9E4F; --blue:#2C7FB8; --periwinkle:#5A61E8;
+    --grid-linha:#E6EAF3;
+    --track:#E4E8F2;
+    --sombra:rgba(20,27,51,.14);
+    --amber-texto:#8A5A0B;
   }
   *{box-sizing:border-box;}
   body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
@@ -37,7 +63,7 @@
     padding:22px 16px; display:flex; flex-direction:column; gap:22px; position:sticky; top:0; height:100vh; overflow-y:auto; }
   .brand{ display:flex; align-items:center; gap:10px; padding:0 4px; position:relative; }
   .brand-mark{ width:34px;height:34px;border-radius:10px; flex-shrink:0; cursor:pointer; position:relative;
-    background-image:url('icon-192.png'); background-color:#0D1326;
+    background-image:url('icon-192.png'); background-color:var(--bg);
     background-size:cover; background-position:center; overflow:hidden; }
   .brand-mark::after{ content:"✎"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
     background:rgba(13,19,38,.55); color:#fff; font-size:12px; opacity:0; transition:.12s; }
@@ -46,7 +72,7 @@
   .brand h1{ font-size:15px; line-height:1.25; font-weight:700; }
   .brand span{ display:block; color:var(--muted); font-size:11px; font-weight:400; font-family:'Inter'; }
   .brand-edit-btn{ background:transparent; border:none; color:var(--muted); font-size:12px; padding:4px; border-radius:6px; flex-shrink:0; }
-  .brand-edit-btn:hover{ color:var(--amber); background:var(--panel-2); }
+  .brand-edit-btn:hover{ color:var(--amber-texto); background:var(--panel-2); }
   .brand-edit-row{ display:none; flex-direction:column; gap:7px; margin-top:2px; padding:0 4px; }
   .brand-edit-row input{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
     padding:7px 9px; color:var(--text); font-size:12.5px; outline:none; }
@@ -60,7 +86,7 @@
   .nav-btn{ display:flex; align-items:center; gap:9px; text-align:left; padding:9px 10px; border-radius:8px;
     border:none; background:transparent; color:var(--muted); font-size:13px; font-weight:500; transition:.12s; }
   .nav-btn:hover{ background:var(--panel-2); color:var(--text); }
-  .nav-btn.active{ background:var(--panel-3); color:var(--amber); font-weight:700; }
+  .nav-btn.active{ background:var(--panel-3); color:var(--amber-texto); font-weight:700; }
   .nav-btn .ic{ width:18px; height:18px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; }
   .nav-btn .ic svg{ width:100%; height:100%; }
 
@@ -228,14 +254,14 @@
   .login-card{ width:100%; max-width:340px; background:var(--panel); border:1px solid var(--border);
     border-radius:16px; padding:28px 24px; display:flex; flex-direction:column; gap:14px; }
   .login-mark{ width:44px;height:44px;border-radius:12px; margin:0 auto 4px;
-    background-image:url('icon-192.png'); background-size:cover; background-position:center; background-color:#0D1326; }
+    background-image:url('icon-192.png'); background-size:cover; background-position:center; background-color:var(--bg); }
   .login-card h2{ text-align:center; font-size:18px; margin-bottom:2px; }
   .login-card .field label{ font-size:11.5px; }
   .login-card .field input{ width:100%; font-size:15px; padding:10px 12px; }
   .login-card .btn{ margin-top:4px; }
   .login-error{ color:var(--coral); font-size:12.5px; text-align:center; min-height:16px; }
   .login-forgot{ text-align:center; color:var(--muted); font-size:12px; text-decoration:none; }
-  .login-forgot:hover{ color:var(--amber); }
+  .login-forgot:hover{ color:var(--amber-texto); }
 
   #onboardingScreen{ position:fixed; inset:0; background:var(--bg); z-index:240;
     display:flex; align-items:center; justify-content:center; padding:20px; }
@@ -275,11 +301,20 @@
   .entry-card .field:has(input[type=date]){ min-width:175px; }
   .btn.income-btn{ background:var(--green); color:#0a2412; }
   .btn.expense-btn{ background:var(--coral); color:#2a0b0d; }
+  /* No claro o coral escurece para servir de texto, e aí o rótulo quase preto
+     do botão de despesa perde contraste — nesse caso o branco é que lê bem.
+     O de receita continua com texto escuro, que sobre o verde lê melhor. */
+  :root[data-tema="claro"] .btn.expense-btn{ color:#FFFFFF; }
+  /* O fundo destas etiquetas é um verde translúcido que, sobre branco, vira
+     quase o mesmo tom do texto — 3.1:1 em letra de 11px. Só aqui o verde
+     escurece mais; usar este tom no --green estragaria o botão de receita,
+     que precisa do verde mais claro para o rótulo escuro dele funcionar. */
+  :root[data-tema="claro"] .pill.receita, :root[data-tema="claro"] .kpi-delta.up{ color:#1B7038; }
 
   .filter-tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:18px 0 12px; }
   .filter-tab{ padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:12.5px; font-weight:600; }
   .filter-tab:hover{ color:var(--text); }
-  .filter-tab.active{ background:var(--panel-3); color:var(--amber); border-color:var(--amber); }
+  .filter-tab.active{ background:var(--panel-3); color:var(--amber-texto); border-color:var(--amber); }
 
   /* MOBILE TOPBAR + GAVETA */
   .mobile-topbar{ display:none; }
@@ -354,6 +389,33 @@
     .field input, .field select, .orc-input, .year-add-row input, .brand-edit-row input, .login-card input{ font-size:16px; }
   }
 </style>
+<script>
+/* Tema: fica aqui no <head>, e não junto do resto do JS que carrega no fim do
+   documento, porque precisa valer ANTES da primeira pintura — senão quem
+   escolheu claro veria um lampejo escuro a cada abertura.
+
+   A preferência é por APARELHO (localStorage), não em db.config: tema é gosto
+   de quem está olhando, e db.config sincroniza para a família toda — mudar o
+   seu não pode mudar o da Mariana. */
+var TEMA_KEY = 'painel_financeiro_tema_v1';
+function temaPreferido(){
+  try{ var t = localStorage.getItem(TEMA_KEY); return (t==='claro'||t==='escuro'||t==='auto') ? t : 'escuro'; }
+  catch(e){ return 'escuro'; }
+}
+function temaEfetivo(pref){
+  if(pref!=='auto') return pref;
+  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'claro' : 'escuro';
+}
+function aplicarTema(){
+  var efetivo = temaEfetivo(temaPreferido());
+  document.documentElement.dataset.tema = efetivo;
+  /* a barra do navegador no celular acompanha o tema */
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute('content', efetivo==='claro' ? '#F4F6FB' : '#0D1326');
+  return efetivo;
+}
+aplicarTema();
+</script>
 </head>
 <body>
 <div id="appLoading">
@@ -626,6 +688,16 @@
         <button class="btn secondary" onclick="handleLogout()">Sair</button>
       </div>
       <div class="card" style="max-width:420px;">
+        <h3>Aparência</h3>
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px;">Vale só neste aparelho — cada pessoa da família escolhe o seu, e trocar o seu não muda o de ninguém.</div>
+        <div class="filter-tabs" id="temaFiltro" style="margin:0;">
+          <button class="filter-tab" data-tema-opt="escuro">Escuro</button>
+          <button class="filter-tab" data-tema-opt="claro">Claro</button>
+          <button class="filter-tab" data-tema-opt="auto">Automático</button>
+        </div>
+        <div style="font-size:11.5px; color:var(--muted); margin-top:9px;" id="temaDica"></div>
+      </div>
+      <div class="card" style="max-width:420px;">
         <div class="form-row" style="flex-direction:column; align-items:stretch;">
           <div class="field"><label>Meta de economia mensal (R$)</label><input type="text" inputmode="decimal" id="cfgMeta" placeholder="1.000,00"></div>
           <div class="field"><label>Nome (opcional, só exibição local)</label><input type="text" id="cfgNome"></div>
@@ -660,7 +732,7 @@
         <h3>🔄 Sincronização entre dispositivos</h3>
         <div style="font-size:12.5px; color:var(--muted); margin-bottom:10px; line-height:1.5;">
           Conecte um banco de dados gratuito (Firebase) pra você e sua esposa verem os mesmos lançamentos em tempo real, em qualquer aparelho.
-          <a href="#" onclick="toggleSyncHelp(); return false;" style="color:var(--amber); font-weight:600;">Como configurar</a>
+          <a href="#" onclick="toggleSyncHelp(); return false;" style="color:var(--amber-texto); font-weight:600;">Como configurar</a>
         </div>
         <div id="syncHelp" style="display:none; font-size:11.5px; color:var(--muted); background:var(--panel-2); border-radius:8px; padding:12px 14px; margin-bottom:14px; line-height:1.7;">
           1. Acesse <b style="color:var(--text)">console.firebase.google.com</b> e crie um projeto grátis (qualquer nome)<br>
@@ -1288,6 +1360,10 @@ function renderView(){
 
 let charts = {};
 function destroy(name){ if(charts[name]){ charts[name].destroy(); delete charts[name]; } }
+/* O Chart.js desenha em canvas e não entende `var(--x)`, então precisa do valor
+   já resolvido. Lido na hora de montar o gráfico — e como trocar de tema chama
+   renderView(), que recria todos os gráficos, as cores acompanham. */
+function corVar(nome){ return getComputedStyle(document.documentElement).getPropertyValue(nome).trim(); }
 function sparkline(canvasId, series, color){
   return new Chart(document.getElementById(canvasId), {
     type:'line',
@@ -1322,9 +1398,9 @@ function renderPainel(){
 
   const hist = agg.slice(Math.max(0,state.month-5), state.month+1);
   ['sparkSaldo','sparkReceita','sparkDespesa'].forEach(destroy);
-  charts['sparkSaldo']=sparkline('sparkSaldo', hist.map(h=>h.receita-h.despesa), '#5BD97A');
-  charts['sparkReceita']=sparkline('sparkReceita', hist.map(h=>h.receita), '#4FA8E0');
-  charts['sparkDespesa']=sparkline('sparkDespesa', hist.map(h=>h.despesa), '#E8636B');
+  charts['sparkSaldo']=sparkline('sparkSaldo', hist.map(h=>h.receita-h.despesa), corVar('--green'));
+  charts['sparkReceita']=sparkline('sparkReceita', hist.map(h=>h.receita), corVar('--blue'));
+  charts['sparkDespesa']=sparkline('sparkDespesa', hist.map(h=>h.despesa), corVar('--coral'));
 
   document.getElementById('metaValue').textContent = fmt(db.config.metaEconomia);
   const ms = document.getElementById('metaStatus');
@@ -1388,33 +1464,33 @@ function renderPainel(){
   if(catsAno.length){
     ringsEl.innerHTML = catsAno.slice(0,6).map(([c,v])=>{
       const pct = Math.round(v/yearSum*100); const col = colorFor(c);
-      return `<div class="ring"><div class="ring-circle" style="background:conic-gradient(${col} ${pct}%, #232C50 0)"><b>${pct}%</b></div><div class="ring-name">${c}</div></div>`;
+      return `<div class="ring"><div class="ring-circle" style="background:conic-gradient(${col} ${pct}%, var(--track) 0)"><b>${pct}%</b></div><div class="ring-name">${c}</div></div>`;
     }).join('');
   } else { ringsEl.innerHTML = '<div class="empty">—</div>'; }
 
   destroy('areaChart');
   charts['areaChart'] = new Chart(document.getElementById('areaChart'), { type:'line',
     data:{ labels:MONTHS, datasets:[
-      { label:'Receitas', data:agg.map(m=>m.receita), borderColor:'#4FA8E0', backgroundColor:'#4FA8E022', fill:true, tension:.35, pointRadius:3, pointBackgroundColor:'#4FA8E0' },
-      { label:'Despesas', data:agg.map(m=>m.despesa), borderColor:'#E8636B', backgroundColor:'#E8636B18', fill:true, tension:.35, pointRadius:3, pointBackgroundColor:'#E8636B' }
+      { label:'Receitas', data:agg.map(m=>m.receita), borderColor:corVar('--blue'), backgroundColor:corVar('--blue')+'22', fill:true, tension:.35, pointRadius:3, pointBackgroundColor:corVar('--blue') },
+      { label:'Despesas', data:agg.map(m=>m.despesa), borderColor:corVar('--coral'), backgroundColor:corVar('--coral')+'18', fill:true, tension:.35, pointRadius:3, pointBackgroundColor:corVar('--coral') }
     ]},
     options:{ responsive:true, maintainAspectRatio:false, animation:false, interaction:{mode:'index', intersect:false},
-      plugins:{ legend:{position:'top', align:'end', labels:{color:'#8C93B8', usePointStyle:true, boxWidth:6, font:{size:11.5}}},
-        tooltip:{backgroundColor:'#1B2444', borderColor:'#28315A', borderWidth:1, titleColor:'#E9ECF7', bodyColor:'#E9ECF7',
+      plugins:{ legend:{position:'top', align:'end', labels:{color:corVar('--muted'), usePointStyle:true, boxWidth:6, font:{size:11.5}}},
+        tooltip:{backgroundColor:corVar('--panel-2'), borderColor:corVar('--border'), borderWidth:1, titleColor:corVar('--text'), bodyColor:corVar('--text'),
           callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`}} },
-      scales:{ x:{grid:{display:false}, ticks:{color:'#8C93B8', font:{family:'IBM Plex Mono', size:10.5}}},
-        y:{grid:{color:'#1F2847'}, ticks:{color:'#8C93B8', font:{family:'IBM Plex Mono', size:10.5}, callback:v=>'R$'+(v/1000)+'k'}} } } });
+      scales:{ x:{grid:{display:false}, ticks:{color:corVar('--muted'), font:{family:'IBM Plex Mono', size:10.5}}},
+        y:{grid:{color:corVar('--grid-linha')}, ticks:{color:corVar('--muted'), font:{family:'IBM Plex Mono', size:10.5}, callback:v=>'R$'+(v/1000)+'k'}} } } });
 
   destroy('barAnalise');
   charts['barAnalise'] = new Chart(document.getElementById('barAnalise'), { type:'bar',
     data:{ labels:MONTHS, datasets:[
-      { label:'Receitas', data:agg.map(m=>m.receita), backgroundColor:'#4FA8E0', borderRadius:4, maxBarThickness:20 },
-      { label:'Despesas', data:agg.map(m=>m.despesa), backgroundColor:'#E8636B', borderRadius:4, maxBarThickness:20 }
+      { label:'Receitas', data:agg.map(m=>m.receita), backgroundColor:corVar('--blue'), borderRadius:4, maxBarThickness:20 },
+      { label:'Despesas', data:agg.map(m=>m.despesa), backgroundColor:corVar('--coral'), borderRadius:4, maxBarThickness:20 }
     ]},
     options:{ responsive:true, maintainAspectRatio:false, animation:false,
-      plugins:{ legend:{position:'top', align:'end', labels:{color:'#8C93B8', usePointStyle:true, boxWidth:6, font:{size:11.5}}} },
-      scales:{ x:{grid:{display:false}, ticks:{color:'#8C93B8', font:{family:'IBM Plex Mono', size:10.5}}},
-        y:{grid:{color:'#1F2847'}, ticks:{color:'#8C93B8', font:{family:'IBM Plex Mono', size:10.5}, callback:v=>'R$'+(v/1000)+'k'}} } } });
+      plugins:{ legend:{position:'top', align:'end', labels:{color:corVar('--muted'), usePointStyle:true, boxWidth:6, font:{size:11.5}}} },
+      scales:{ x:{grid:{display:false}, ticks:{color:corVar('--muted'), font:{family:'IBM Plex Mono', size:10.5}}},
+        y:{grid:{color:corVar('--grid-linha')}, ticks:{color:corVar('--muted'), font:{family:'IBM Plex Mono', size:10.5}, callback:v=>'R$'+(v/1000)+'k'}} } } });
 }
 
 let lancFilter = 'todos';
@@ -1427,6 +1503,38 @@ document.querySelectorAll('#lancFilter .filter-tab').forEach(b=>{
 document.querySelectorAll('#catFilter .filter-tab').forEach(b=>{
   b.onclick = ()=>{ catFilter=b.dataset.f; document.querySelectorAll('#catFilter .filter-tab').forEach(x=>x.classList.toggle('active', x===b)); renderCategorias(); };
 });
+
+/* ---- Tema claro/escuro ----
+   aplicarTema, temaPreferido e temaEfetivo ficam no <head>, porque precisam
+   rodar antes da primeira pintura. Aqui fica só a parte de interface. */
+function atualizarAbasTema(){
+  const pref = temaPreferido();
+  document.querySelectorAll('#temaFiltro .filter-tab').forEach(b=>{
+    b.classList.toggle('active', b.dataset.temaOpt === pref);
+  });
+  const dica = document.getElementById('temaDica');
+  if(dica) dica.textContent = pref==='auto'
+    ? 'Seguindo o sistema — agora está ' + (temaEfetivo('auto')==='claro' ? 'claro.' : 'escuro.')
+    : '';
+}
+function definirTema(pref){
+  try{ localStorage.setItem(TEMA_KEY, pref); }catch(e){}
+  aplicarTema();
+  atualizarAbasTema();
+  /* os gráficos são canvas: mudar a variável CSS não os repinta, então é
+     preciso recriá-los — o renderView faz isso */
+  renderView();
+}
+document.querySelectorAll('#temaFiltro .filter-tab').forEach(b=>{
+  b.onclick = ()=> definirTema(b.dataset.temaOpt);
+});
+if(window.matchMedia){
+  /* no modo automático, acompanha o sistema mudando com o app aberto */
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', ()=>{
+    if(temaPreferido()==='auto'){ aplicarTema(); atualizarAbasTema(); renderView(); }
+  });
+}
+atualizarAbasTema();
 let invSub = 'geral';
 function escAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
 
@@ -2120,7 +2228,7 @@ function renderCarteiraDistribuicao(wrap){
       <div class="rings">${porClasse.length ? porClasse.map(c=>{
         const pct = totalAtual ? Math.round(c.atual/totalAtual*100) : 0;
         const col = paletteColor(c.classe, classes);
-        return `<div class="ring"><div class="ring-circle" style="background:conic-gradient(${col} ${pct}%, #232C50 0)"><b>${pct}%</b></div><div class="ring-name">${c.label}</div></div>`;
+        return `<div class="ring"><div class="ring-circle" style="background:conic-gradient(${col} ${pct}%, var(--track) 0)"><b>${pct}%</b></div><div class="ring-name">${c.label}</div></div>`;
       }).join('') : '<div class="empty">—</div>'}</div>
     </div>
     <div class="card">
