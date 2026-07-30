@@ -245,6 +245,11 @@
 
   .empty{ color:var(--muted); font-size:13px; padding:18px 0; text-align:center; }
 
+  /* Recado de rodapé de card: explica de onde vem um número, em letra menor que
+     o valor e maior que a lista de detalhe, para ser lido antes dela. */
+  .kpi-nota{ font-size:11.5px; line-height:1.45; color:var(--muted); margin-top:6px; max-width:52ch; }
+  .kpi-nota b{ color:var(--amber-texto); font-weight:600; }
+
   #appLoading{ position:fixed; inset:0; background:var(--bg); z-index:300;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
   #appLoading.hidden{ display:none; }
@@ -684,8 +689,9 @@ aplicarTema();
 
       <div class="card" id="contasAPagarCard" style="margin-bottom:16px; display:none; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div>
-          <div class="kpi-label">Contas a pagar (mês)</div>
+          <div class="kpi-label">Contas fixas a pagar (mês)</div>
           <div class="kpi-value num" id="contasAPagarValue" style="font-size:18px;">—</div>
+          <div id="contasAPagarNota" class="kpi-nota"></div>
           <div id="contasAPagarDetalhe" style="font-size:11px; color:var(--muted); margin-top:4px;"></div>
         </div>
         <div id="contasAPagarStatus" style="font-weight:700; font-size:14px;"></div>
@@ -1732,6 +1738,21 @@ function renderPainel(){
       const cfs = document.getElementById('contasAPagarStatus');
       if(!pendentes.length){ cfs.textContent = '🟢 Tudo em dia'; cfs.style.color = 'var(--green)'; }
       else{ cfs.textContent = `🟡 ${pendentes.length} pendente${pendentes.length>1?'s':''}`; cfs.style.color = 'var(--amber)'; }
+      /* "Despesas do mês" soma lançamentos, e conta fixa pendente ainda não é um
+         — ela só vira lançamento no "Marcar como paga". Sem esta nota o painel
+         parece a foto fechada do mês quando ainda falta somar este valor. O
+         saldo projetado vai junto porque é a pergunta seguinte de quem lê. */
+      const nota = document.getElementById('contasAPagarNota');
+      if(!pendentes.length){
+        nota.textContent = '';
+      } else {
+        nota.textContent = '';
+        nota.appendChild(document.createTextNode('Ainda não entrou em Despesas do mês — cada conta entra quando você marca como paga. Com todas pagas, o saldo do mês fica em '));
+        const b = document.createElement('b');
+        b.textContent = fmt(saldo - totalPendente);
+        nota.appendChild(b);
+        nota.appendChild(document.createTextNode('.'));
+      }
       const detalhe = document.getElementById('contasAPagarDetalhe');
       detalhe.textContent = [...pendentes]
         .sort((a,b)=>a.diaVencimento-b.diaVencimento)
