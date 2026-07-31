@@ -1254,10 +1254,12 @@ function informar(msg, opts){ return abrirDialogo(msg, Object.assign({ soOk:true
    uma leitura negada acusava problema de gravação e mandava procurar no lugar
    errado. */
 let syncAvisoEl = null;
+let syncAvisoModo = null;
 function showSyncError(err, modo){
   const code = (err && (err.code || err.message)) || 'erro desconhecido';
   const leitura = modo === 'leitura';
   clearSyncError();
+  syncAvisoModo = leitura ? 'leitura' : 'escrita';
   syncAvisoEl = avisar(
     leitura ? 'Mostrando dados só deste aparelho' : 'Alteração salva só neste aparelho',
     { tipo:'erro', duracao:0, detalhe: leitura
@@ -1266,7 +1268,17 @@ function showSyncError(err, modo){
   );
   console.error('[Kofre+] falha ao sincronizar:', err);
 }
-function clearSyncError(){ if(syncAvisoEl){ syncAvisoEl.fechar(); syncAvisoEl = null; } }
+/* `modo` opcional: apaga só o aviso daquele tipo. Sem argumento, apaga qualquer
+   um. A distinção existe porque os dois avisos deixam de valer em momentos
+   diferentes — um snapshot que chega prova que a leitura voltou, mas não diz
+   nada sobre a alteração que não conseguiu ser gravada. */
+function clearSyncError(modo){
+  if(!syncAvisoEl) return;
+  if(modo && syncAvisoModo !== modo) return;
+  syncAvisoEl.fechar();
+  syncAvisoEl = null;
+  syncAvisoModo = null;
+}
 
 function toggleSyncHelp(){
   const el = document.getElementById('syncHelp');
@@ -1303,6 +1315,13 @@ function subscribeSync(){
   let jaAplicouRemoto = false;
   unsubscribeSnapshot = firestoreDocRef.onSnapshot(docSnap=>{
     if(docSnap.metadata.hasPendingWrites) return;
+    /* Chegou snapshot do servidor: a leitura está permitida e funcionando. Sem
+       isto, um aviso de leitura anterior continuava na tela para sempre (ele
+       não tem duração) e seguia dizendo "dados só deste aparelho" muito depois
+       do acesso ter sido liberado — foi o que atrapalhou um diagnóstico real.
+       Só o aviso de leitura sai daqui: o de escrita significa alteração que não
+       chegou ao servidor, e isso continua verdade. */
+    clearSyncError('leitura');
     if(firstSnapshot){
       firstSnapshot = false;
       if(!docSnap.exists || !docSnap.data() || !docSnap.data().payload){
@@ -1320,7 +1339,7 @@ function subscribeSync(){
            e as regras permitiriam, porque quem faz isso é membro legítimo. */
         if(!docSnap.exists && user) dados.membros = [emailNormalizado(user.email)];
         firestoreDocRef.set(dados, { merge: true })
-          .then(clearSyncError).catch(showSyncError);
+          .then(()=>clearSyncError()).catch(showSyncError);
         buildSidebarPeriod(); buildInvNav(); renderNav(); renderBrand(); renderView();
         return;
       }
@@ -1347,12 +1366,43 @@ function subscribeSync(){
        alguém da família tiver pago em outro aparelho */
     checkContasVencidasOuHoje();
     setSyncStatus('Sincronizado agora ✓', true);
-  }, err=>{ setSyncStatus('Erro de sincronização: ' + err.message, false); showSyncError(err, 'leitura'); });
+  }, err=>{
+    setSyncStatus('Erro de sincronização: ' + err.message, false);
+    /* `permission-denied` não é falha passageira: é o servidor dizendo que esta
+       conta não está em `membros` da família, ou que essa família não existe.
+       Insistir não resolve, e um aviso de rodapé deixava a pessoa presa numa
+       tela zerada sem ação possível — o onboarding não voltava sozinho porque
+       resolveFamiliaEConecta conecta direto quando usuarios/{uid} tem código. */
+    if(err && err.code === 'permission-denied'){ tratarAcessoNegado(err); return; }
+    showSyncError(err, 'leitura');
+  });
+}
+/* Devolve a pessoa a uma tela onde ela consegue agir: entrar com outro código
+   ou criar uma família. Não mexe em usuarios/{uid} — se o acesso for liberado
+   depois, basta recarregar; e entrarEmFamilia regrava o vínculo sozinho quando
+   dá certo. */
+function tratarAcessoNegado(err){
+  console.error('[Kofre+] acesso negado à família:', err);
+  if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+  /* zera a referência para nenhuma escrita local tentar ir parar numa família
+     que não é desta conta */
+  firestoreDocRef = null;
+  clearSyncError();
+  const user = firebase.auth().currentUser;
+  if(!user) return;
+  const codigo = (syncCfg && syncCfg.codigo) ? syncCfg.codigo : '';
+  showOnboarding(user);
+  const errEl = document.getElementById('onbError');
+  if(errEl){
+    errEl.textContent = codigo
+      ? 'Seu acesso à família ' + codigo + ' não está liberado. Peça para quem já usa o app te adicionar em Config → Membros da família e recarregue esta página — ou entre com outro código.'
+      : 'Seu acesso a esta família não está liberado. Peça para quem já usa o app te adicionar em Config → Membros da família.';
+  }
 }
 function pushToFirestore(){
   if(!firestoreDocRef || applyingRemote) return;
   firestoreDocRef.set({ payload: db, updatedAt: Date.now(), updatedBy: deviceId }, { merge: true })
-    .then(clearSyncError).catch(showSyncError);
+    .then(()=>clearSyncError()).catch(showSyncError);
 }
 
 /* =========================================================
