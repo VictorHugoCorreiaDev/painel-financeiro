@@ -215,6 +215,13 @@
   .btn.secondary{ background:var(--panel-2); color:var(--text); border:1px solid var(--border); margin-right:8px; }
   .btn.danger-ghost{ background:transparent; color:var(--coral); border:1px solid transparent; padding:4px 8px; font-size:15px; border-radius:6px; }
   .btn.danger-ghost:hover{ background:rgba(232,99,107,.12); }
+  /* Caixa do código da família, em Config → Membros. O código costuma ser ditado
+     por telefone e digitado à mão do outro lado, então precisa ser lido letra por
+     letra: monoespaçado, espaçado, e selecionável de uma tocada só. */
+  .codigo-box{ display:flex; align-items:center; gap:10px; background:var(--panel-2);
+    border:1px solid var(--border); border-radius:8px; padding:9px 12px; }
+  .codigo-box .valor{ flex:1; font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600;
+    color:var(--amber-texto); letter-spacing:.06em; user-select:all; word-break:break-all; }
 
   .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -4px; padding:0 4px; }
   table.data{ width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
@@ -665,7 +672,10 @@ aplicarTema();
       <div style="font-size:10px; color:var(--muted); margin-top:8px;">Usado no Painel e no Orçamento</div>
     </div>
 
-    <div class="sidebar-foot">Seus dados ficam salvos neste navegador (localStorage). Nada é enviado a servidores externos.</div>
+    <!-- Este rodapé dizia "Nada é enviado a servidores externos", frase que era
+         verdade antes da sincronização entrar e virou mentira depois dela. Se
+         mudar o destino dos dados de novo, esta linha muda junto. -->
+    <div class="sidebar-foot">Seus dados ficam salvos na sua conta e sincronizam entre seus aparelhos. Só quem está em Config → Membros da família enxerga.</div>
   </aside>
 
   <main class="main">
@@ -873,45 +883,39 @@ aplicarTema();
         <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importarDados(event)">
       </div>
 
+      <!-- Um card só. O antigo "Sincronização entre dispositivos" pedia o objeto
+           firebaseConfig colado à mão e um código digitado — coisa da época em que
+           cada casal montava o próprio Firebase. Hoje a config é fixa no app e o
+           código vem da conta (ver resolveFamiliaEConecta), então aquilo só servia
+           para expor tripa técnica e para alguém apontar o app, sem querer, para o
+           código de outra família. O que sobrou de útil é o código, que mora aqui
+           porque é parte do convite. -->
       <div class="card" style="max-width:460px;">
         <h3>👥 Membros da família</h3>
         <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px; line-height:1.5;">
-          Quem está nesta lista enxerga e edita os mesmos lançamentos. Para convidar alguém,
-          adicione o e-mail aqui e depois passe o código da família — sem estar na lista,
-          ninguém entra, mesmo sabendo o código.
+          Quem está nesta lista enxerga e edita os mesmos lançamentos, em tempo real,
+          em qualquer aparelho.
         </div>
-        <div id="membrosLista" style="margin-bottom:12px;"></div>
+        <div id="membrosLista" style="margin-bottom:14px;"></div>
         <div class="field" style="margin-bottom:10px;">
           <label>E-mail de quem você quer liberar</label>
           <input type="email" id="membroEmailInput" placeholder="pessoa@email.com">
         </div>
         <button class="btn" onclick="adicionarMembro()">Adicionar membro</button>
         <div id="membrosStatus" style="margin-top:10px; font-size:12.5px; font-weight:600;"></div>
-      </div>
 
-      <div class="card" style="max-width:460px;">
-        <h3>🔄 Sincronização entre dispositivos</h3>
-        <div style="font-size:12.5px; color:var(--muted); margin-bottom:10px; line-height:1.5;">
-          Conecte um banco de dados gratuito (Firebase) pra você e sua esposa verem os mesmos lançamentos em tempo real, em qualquer aparelho.
-          <a href="#" onclick="toggleSyncHelp(); return false;" style="color:var(--amber-texto); font-weight:600;">Como configurar</a>
+        <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--border);">
+          <div style="font-size:11px; color:var(--muted); font-weight:600; margin-bottom:6px;">CÓDIGO DA FAMÍLIA</div>
+          <div class="codigo-box">
+            <span class="valor" id="codigoFamiliaValor">—</span>
+            <button class="btn secondary" style="margin:0; padding:5px 11px; font-size:11.5px;" onclick="copiarCodigoFamilia()">Copiar</button>
+          </div>
+          <div style="font-size:11.5px; color:var(--muted); margin-top:8px; line-height:1.5;">
+            Depois de liberar o e-mail acima, passe este código para a pessoa entrar.
+            Sem estar na lista, ninguém entra — mesmo sabendo o código.
+          </div>
+          <div id="syncStatus" style="margin-top:10px; font-size:12px; font-weight:600;"></div>
         </div>
-        <div id="syncHelp" style="display:none; font-size:11.5px; color:var(--muted); background:var(--panel-2); border-radius:8px; padding:12px 14px; margin-bottom:14px; line-height:1.7;">
-          1. Acesse <b style="color:var(--text)">console.firebase.google.com</b> e crie um projeto grátis (qualquer nome)<br>
-          2. No menu, vá em <b style="color:var(--text)">Build → Firestore Database → Criar banco de dados</b> (modo teste, região mais próxima ex: southamerica-east1)<br>
-          3. Vá em <b style="color:var(--text)">⚙️ Configurações do projeto → seus apps</b> → clique no ícone <b style="color:var(--text)">&lt;/&gt;</b> (Web) → registre um app<br>
-          4. Copie o objeto <b style="color:var(--text)">firebaseConfig</b> que aparece (com apiKey, projectId etc.) e cole no campo abaixo<br>
-          5. Combine com sua esposa um <b style="color:var(--text)">código da família</b> (qualquer texto único, ex: "correia-financas-26") — os dois usam o mesmo código no app de cada um
-        </div>
-        <div class="field" style="margin-bottom:10px;">
-          <label>Configuração do Firebase (cole o objeto firebaseConfig)</label>
-          <textarea id="syncConfigInput" rows="5" placeholder='{ apiKey: "...", authDomain: "...", projectId: "...", storageBucket: "...", messagingSenderId: "...", appId: "..." }'></textarea>
-        </div>
-        <div class="field" style="margin-bottom:12px;">
-          <label>Código da família (igual nos dois aparelhos)</label>
-          <input type="text" id="syncCodigoInput" placeholder="ex: correia-financas-26">
-        </div>
-        <button class="btn" onclick="handleConnectSync()">Conectar e sincronizar</button>
-        <div id="syncStatus" style="margin-top:10px; font-size:12.5px; font-weight:600;"></div>
       </div>
     </section>
 
@@ -1035,13 +1039,6 @@ let syncCfg = loadSync() || DEFAULT_SYNC;
 let deviceId = (syncCfg && syncCfg.deviceId) || ('dev-' + Math.random().toString(36).slice(2,10));
 let unsubscribeSnapshot = null;
 
-function parseFirebaseConfigText(text){
-  try{
-    const start = text.indexOf('{'), end = text.lastIndexOf('}');
-    if(start===-1 || end===-1) return null;
-    return (new Function('return ' + text.slice(start, end+1)))();
-  }catch(e){ return null; }
-}
 function setSyncStatus(msg, ok){
   const el = document.getElementById('syncStatus'); if(!el) return;
   el.textContent = msg;
@@ -1280,18 +1277,24 @@ function clearSyncError(modo){
   syncAvisoModo = null;
 }
 
-function toggleSyncHelp(){
-  const el = document.getElementById('syncHelp');
-  el.style.display = el.style.display==='block' ? 'none' : 'block';
+/* O código fica num nó fixo do Config, que existe no DOM mesmo com a tela
+   escondida — daí dar para atualizar assim que a conexão resolve, sem esperar
+   a pessoa abrir o Config. */
+function renderCodigoFamilia(){
+  const el = document.getElementById('codigoFamiliaValor');
+  if(el) el.textContent = (syncCfg && syncCfg.codigo) || '—';
 }
-function handleConnectSync(){
-  if(typeof firebase==='undefined'){ setSyncStatus('Não foi possível carregar o Firebase (verifique sua internet).', false); return; }
-  const raw = document.getElementById('syncConfigInput').value;
-  const codigo = document.getElementById('syncCodigoInput').value.trim();
-  if(!codigo){ setSyncStatus('Digite um código da família.', false); return; }
-  const cfg = parseFirebaseConfigText(raw);
-  if(!cfg || !cfg.projectId){ setSyncStatus('Configuração inválida — cole o objeto firebaseConfig completo.', false); return; }
-  connectSync(cfg, codigo);
+function copiarCodigoFamilia(){
+  const cod = (syncCfg && syncCfg.codigo) || '';
+  if(!cod){ setSyncStatus('Nenhuma família conectada ainda.', false); return; }
+  /* clipboard só existe em contexto seguro e ainda assim pode ser negado pelo
+     navegador. Quando falha, a saída é a mão mesmo — e o `user-select:all` da
+     .codigo-box faz uma tocada selecionar o código inteiro. */
+  const naoDeu = ()=> avisar('Não foi possível copiar. Toque no código para selecioná-lo.', { tipo:'erro' });
+  if(!navigator.clipboard || !navigator.clipboard.writeText){ naoDeu(); return; }
+  navigator.clipboard.writeText(cod)
+    .then(()=> avisar('Código copiado.', { tipo:'ok' }))
+    .catch(naoDeu);
 }
 function connectSync(cfg, codigo){
   try{
@@ -1302,7 +1305,8 @@ function connectSync(cfg, codigo){
     syncCfg = { firebaseConfig: cfg, codigo, deviceId };
     saveSyncCfg(syncCfg);
     subscribeSync();
-    setSyncStatus('Conectado ✓ — código: ' + codigo, true);
+    renderCodigoFamilia();
+    setSyncStatus('Sincronizado ✓', true);
   }catch(err){
     setSyncStatus('Configuração inválida: ' + err.message, false);
   }
@@ -2916,11 +2920,10 @@ function renderConfig(){
     const user = firebase.auth().currentUser;
     loggedEl.textContent = user ? ('Logado como: ' + user.email) : '';
   }
-  if(syncCfg && syncCfg.firebaseConfig){
-    document.getElementById('syncConfigInput').value = JSON.stringify(syncCfg.firebaseConfig, null, 2);
-    document.getElementById('syncCodigoInput').value = syncCfg.codigo || '';
-    setSyncStatus(firestoreDocRef ? ('Conectado ✓ — código: ' + syncCfg.codigo) : 'Configurado — reconectando...', !!firestoreDocRef);
-  }
+  renderCodigoFamilia();
+  /* `null` no segundo argumento deixa o texto cinza: enquanto reconecta não há
+     erro nenhum, e pintar de vermelho assustaria à toa. */
+  setSyncStatus(firestoreDocRef ? 'Sincronizado ✓' : 'Reconectando...', firestoreDocRef ? true : null);
 }
 function handleLogout(){
   firebase.auth().signOut();
