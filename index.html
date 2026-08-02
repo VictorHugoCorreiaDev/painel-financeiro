@@ -276,6 +276,19 @@
      abaixo de 3:1 contra o branco, então o valor precisa estar legível fora da
      barra. Também é o que garante que a identidade do cartão nunca dependa só
      da cor — o nome vem escrito ao lado do quadradinho. */
+  .pager{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    margin-top:14px; padding-top:12px; border-top:1px solid var(--panel-2); }
+  .pager-info{ font-size:12px; color:var(--muted); }
+  .pager-info b{ color:var(--text); font-weight:600; }
+  .pager-btns{ display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+  .pager-btn{ min-width:30px; padding:5px 8px; border-radius:7px; border:1px solid var(--border);
+    background:var(--panel-2); color:var(--muted); font-size:12px; font-weight:600;
+    font-family:'IBM Plex Mono',monospace; transition:.12s; }
+  .pager-btn:hover:not(:disabled){ background:var(--panel-3); color:var(--text); }
+  .pager-btn.active{ background:var(--amber); border-color:var(--amber); color:#241A05; }
+  .pager-btn:disabled{ opacity:.35; }
+  .pager-gap{ color:var(--muted); font-size:12px; padding:0 2px; }
+
   .fat-totais{ display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:14px;
     padding-top:12px; border-top:1px solid var(--panel-2); }
   .fat-total{ display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); }
@@ -582,6 +595,12 @@
     .nav-btn{ padding:12px 10px; font-size:14px; }
     .month-btn{ padding:12px 4px; font-size:12.5px; }
     .chip{ padding:10px 0; }
+    /* No dedo, 30px de botão de página é alvo de errar. Se não couberem numa
+       linha, o flex-wrap do .pager-btns quebra — melhor duas linhas confortáveis
+       que uma fileira de alvos apertados. */
+    .pager-btn{ min-width:38px; padding:9px 11px; }
+    .pager{ justify-content:center; }
+    .pager-btns{ justify-content:center; }
     .btn{ padding:11px 16px; }
     .btn.danger-ghost{ padding:8px 10px; font-size:17px; }
 
@@ -2118,8 +2137,12 @@ let lancFilter = 'todos';
 let editingLancId = null;
 let expandedGroupKeys = new Set();
 const PARCELA_RE = /^(.*) \((\d+)\/(\d+)\)$/;
+/* Uma parcela agrupada conta como UMA entrada aqui, igual ao que se vê na tela.
+   Paginar pelas transações cruas partiria um grupo no meio da página. */
+const LANC_POR_PAGINA = 20;
+let lancPage = 0;
 document.querySelectorAll('#lancFilter .filter-tab').forEach(b=>{
-  b.onclick = ()=>{ lancFilter=b.dataset.f; editingLancId=null; document.querySelectorAll('#lancFilter .filter-tab').forEach(x=>x.classList.toggle('active', x===b)); renderLancamentos(); };
+  b.onclick = ()=>{ lancFilter=b.dataset.f; editingLancId=null; lancPage=0; document.querySelectorAll('#lancFilter .filter-tab').forEach(x=>x.classList.toggle('active', x===b)); renderLancamentos(); };
 });
 document.querySelectorAll('#catFilter .filter-tab').forEach(b=>{
   b.onclick = ()=>{ catFilter=b.dataset.f; document.querySelectorAll('#catFilter .filter-tab').forEach(x=>x.classList.toggle('active', x===b)); renderCategorias(); };
@@ -2299,15 +2322,13 @@ async function deleteGrupoTransacoes(key){
   if(state.view==='painel') renderPainel();
 }
 
-function renderLancamentos(){
-  populateCategoriaSelects();
-  populateCartaoSelects();
-  const wrap = document.getElementById('lancTableWrap');
+/* A lista já mostrada, com as parcelas agrupadas. Separado de renderLancamentos
+   porque a paginação precisa contar as mesmas entradas que a tela desenha. */
+function itensDaLista(){
   let rows = [...db.transacoes].sort((a,b)=> b.data.localeCompare(a.data));
   if(lancFilter==='receita') rows = rows.filter(t=>t.valor>=0);
   if(lancFilter==='despesa') rows = rows.filter(t=>t.valor<0);
   if(lancFilter==='parcelados') rows = rows.filter(t=>PARCELA_RE.test(t.desc));
-  if(!rows.length){ wrap.innerHTML = '<div class="empty">Nenhum lançamento neste filtro.</div>'; return; }
 
   const groups = {};
   const items = [];
@@ -2318,7 +2339,75 @@ function renderLancamentos(){
     if(!groups[key]){ groups[key] = { key, baseDesc:m[1], items:[] }; items.push({type:'group', key}); }
     groups[key].items.push(t);
   });
-  const bodyHtml = items.map(item=>{
+  return { items, groups };
+}
+
+/* Depois de lançar, a lista pula para a página onde o novo item caiu. Sem isso,
+   quem lança uma data antiga com a lista paginada não vê nada acontecer e
+   conclui que o botão falhou. */
+function irParaPaginaDoLancamento(id){
+  const { items, groups } = itensDaLista();
+  const idx = items.findIndex(it => it.type==='single'
+    ? it.t.id===id
+    : groups[it.key].items.some(t=>t.id===id));
+  lancPage = idx>=0 ? Math.floor(idx/LANC_POR_PAGINA) : 0;
+}
+
+/* Primeira, última, a atual e as vizinhas — com reticências no que ficou de
+   fora. Até 7 páginas cabem todas, e aí não vale esconder nada. */
+function paginasVisiveis(atual, total){
+  if(total<=7) return Array.from({length:total},(_,i)=>i);
+  const set = new Set([0, total-1, atual, atual-1, atual+1, atual-2, atual+2]);
+  const nums = [...set].filter(n=>n>=0 && n<total).sort((a,b)=>a-b);
+  const saida = [];
+  nums.forEach((n,i)=>{ if(i>0 && n-nums[i-1]>1) saida.push('…'); saida.push(n); });
+  return saida;
+}
+
+function paginadorHtml(totalItens, totalPaginas){
+  if(totalPaginas<=1) return '';
+  const de = lancPage*LANC_POR_PAGINA + 1;
+  const ate = Math.min(totalItens, (lancPage+1)*LANC_POR_PAGINA);
+  const botoes = paginasVisiveis(lancPage, totalPaginas).map(p=>
+    p==='…' ? '<span class="pager-gap">…</span>'
+            : `<button class="pager-btn${p===lancPage?' active':''}" onclick="irParaPagina(${p})">${p+1}</button>`
+  ).join('');
+  return `<div class="pager">
+    <div class="pager-info">Mostrando <b>${de}–${ate}</b> de ${totalItens}</div>
+    <div class="pager-btns">
+      <button class="pager-btn" onclick="irParaPagina(${lancPage-1})" ${lancPage===0?'disabled':''} title="Anterior">‹</button>
+      ${botoes}
+      <button class="pager-btn" onclick="irParaPagina(${lancPage+1})" ${lancPage===totalPaginas-1?'disabled':''} title="Próxima">›</button>
+    </div>
+  </div>`;
+}
+function irParaPagina(p){
+  lancPage = p;
+  editingLancId = null;
+  renderLancamentos();
+  const wrap = document.getElementById('lancTableWrap');
+  if(wrap) wrap.scrollIntoView({ block:'start', behavior:'smooth' });
+}
+
+function renderLancamentos(){
+  populateCategoriaSelects();
+  populateCartaoSelects();
+  const wrap = document.getElementById('lancTableWrap');
+  const { items, groups } = itensDaLista();
+  if(!items.length){
+    lancPage = 0;
+    wrap.innerHTML = '<div class="empty">Nenhum lançamento neste filtro.</div>';
+    return;
+  }
+
+  /* Prender a página ao intervalo válido a cada desenho resolve sozinho o caso
+     de esvaziar a última página apagando lançamento ou trocando de filtro. */
+  const totalPaginas = Math.max(1, Math.ceil(items.length / LANC_POR_PAGINA));
+  if(lancPage > totalPaginas-1) lancPage = totalPaginas-1;
+  if(lancPage < 0) lancPage = 0;
+  const pagina = items.slice(lancPage*LANC_POR_PAGINA, (lancPage+1)*LANC_POR_PAGINA);
+
+  const bodyHtml = pagina.map(item=>{
     if(item.type==='single') return rowHtml(item.t);
     const group = groups[item.key];
     if(group.items.length===1) return rowHtml(group.items[0]);
@@ -2331,7 +2420,7 @@ function renderLancamentos(){
 
   wrap.innerHTML = `<div class="table-scroll"><table class="data"><thead><tr>
     <th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Conta</th><th style="text-align:right;">Valor</th><th></th>
-  </tr></thead><tbody>${bodyHtml}</tbody></table></div>`;
+  </tr></thead><tbody>${bodyHtml}</tbody></table></div>` + paginadorHtml(items.length, totalPaginas);
 }
 function startEditTransacao(id){ editingLancId = id; renderLancamentos(); }
 function cancelEditTransacao(){ editingLancId = null; renderLancamentos(); }
@@ -2360,9 +2449,11 @@ function addReceita(){
   const valorAbs = parseValorBR(document.getElementById('rValor').value);
   const conta = document.getElementById('rConta').value.trim();
   if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ avisar('Preencha data, descrição e um valor válido.', { tipo:'erro' }); return; }
-  db.transacoes.push({ id:nextId(db.transacoes), data, desc, valor:Math.abs(valorAbs), conta });
+  const novoId = nextId(db.transacoes);
+  db.transacoes.push({ id:novoId, data, desc, valor:Math.abs(valorAbs), conta });
   saveDB();
   document.getElementById('rDesc').value=''; document.getElementById('rValor').value=''; document.getElementById('rConta').value='';
+  irParaPaginaDoLancamento(novoId);
   renderLancamentos(); buildSidebarPeriod();
   if(state.view==='painel') renderPainel();
 }
@@ -2385,6 +2476,7 @@ function addDespesa(){
   const parcelasRaw = parseInt(document.getElementById('dParcelas').value, 10);
   const parcelas = (parcelasRaw && parcelasRaw>1) ? parcelasRaw : 1;
   if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ avisar('Preencha data, descrição e um valor válido.', { tipo:'erro' }); return; }
+  const primeiroId = nextId(db.transacoes);
   for(let i=0; i<parcelas; i++){
     /* Parcelamento no cartão compõe naturalmente: a parcela i é uma compra um
        mês depois da anterior, e cada uma cai na fatura que engoliria aquela
@@ -2397,6 +2489,7 @@ function addDespesa(){
   }
   saveDB();
   document.getElementById('dDesc').value=''; document.getElementById('dValor').value=''; document.getElementById('dConta').value=''; document.getElementById('dParcelas').value='';
+  irParaPaginaDoLancamento(primeiroId);
   renderLancamentos(); buildSidebarPeriod();
   if(state.view==='painel') renderPainel();
 }
