@@ -524,6 +524,36 @@
      em valores, botoes e series de grafico sem necessidade. */
   :root[data-tema="escuro"] .pill.despesa, :root[data-tema="escuro"] .kpi-delta.down{ color:#EE7B82; }
 
+  /* CONFIG — os cards vinham com largura, título e espaçamento cada um de um
+     jeito: dois com 420px, um com 460px, um sem título nenhum e só um com
+     emoji no cabeçalho. Agora todos saem da mesma grade e das mesmas duas
+     classes, e o texto de apoio tem uma medida só. */
+  .config-cards{ grid-template-columns:minmax(0,460px); align-items:start; }
+  /* Em tela larga a coluna única deixava metade do Config vazio. As colunas são
+     minmax(0,460px) e não 460px fixos para poderem encolher junto — coluna fixa
+     estouraria a página em largura intermediária. */
+  @media (min-width:1180px){ .config-cards{ grid-template-columns:repeat(2, minmax(0,460px)); } }
+  .card-desc{ font-size:12.5px; color:var(--muted); line-height:1.5; margin-bottom:14px; }
+  .card-acoes{ display:flex; flex-wrap:wrap; gap:8px; }
+  /* o margin-right do .btn.secondary existe para botões soltos; aqui quem
+     separa é o gap, senão a distância entre dois botões vira 8+8 */
+  .card-acoes .btn{ margin:0; }
+  .card-sub{ margin-top:18px; padding-top:16px; border-top:1px solid var(--border); }
+  .card-sub-titulo{ font-size:11px; color:var(--muted); font-weight:600;
+    letter-spacing:.04em; text-transform:uppercase; margin-bottom:8px; }
+  .membro-row{ display:flex; align-items:center; gap:8px; padding:8px 0;
+    border-bottom:1px solid var(--border); font-size:13px; }
+  /* a última linha encostava numa borda que não separava de nada — sobrava um
+     risco solto entre a lista e o campo de liberar e-mail */
+  .membro-row:last-child{ border-bottom:none; padding-bottom:0; }
+  .membro-row .nome{ flex:1; min-width:0; word-break:break-all; }
+  /* a margem morava num style inline que o próprio renderMembros apagava ao
+     limpar o cssText da lista — depois de conectar, o campo de liberar e-mail
+     colava na última linha */
+  .membros-lista{ margin-bottom:14px; }
+  .membros-lista.aviso{ font-size:12.5px; color:var(--muted); }
+  .membro-row .btn{ margin:0; padding:4px 10px; font-size:11.5px; }
+
   .filter-tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:18px 0 12px; }
   .filter-tab{ padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:12.5px; font-weight:600; }
   .filter-tab:hover{ color:var(--text); }
@@ -964,68 +994,85 @@ aplicarTema();
 
     <section class="view" id="view-config">
       <div class="topbar"><h2>Configurações</h2><div class="period"></div></div>
-      <div class="card" style="max-width:420px;">
-        <h3>Conta</h3>
-        <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px;" id="loggedInAs"></div>
-        <button class="btn secondary" onclick="handleLogout()">Sair</button>
-      </div>
-      <div class="card" style="max-width:420px;">
-        <h3>Aparência</h3>
-        <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px;">Vale só neste aparelho — cada pessoa da família escolhe o seu, e trocar o seu não muda o de ninguém.</div>
-        <div class="filter-tabs" id="temaFiltro" style="margin:0;">
-          <button class="filter-tab" data-tema-opt="escuro">Escuro</button>
-          <button class="filter-tab" data-tema-opt="claro">Claro</button>
-          <button class="filter-tab" data-tema-opt="auto">Automático</button>
-        </div>
-        <div style="font-size:11.5px; color:var(--muted); margin-top:9px;" id="temaDica"></div>
-      </div>
-      <div class="card" style="max-width:420px;">
-        <div class="form-row" style="flex-direction:column; align-items:stretch;">
-          <div class="field"><label>Meta de economia mensal (R$)</label><input type="text" inputmode="decimal" id="cfgMeta" placeholder="1.000,00"></div>
-          <div class="field"><label>Nome (opcional, só exibição local)</label><input type="text" id="cfgNome"></div>
-          <button class="btn" onclick="saveConfig()" style="align-self:flex-start;">Salvar</button>
-        </div>
-      </div>
-      <div class="card" style="max-width:420px;">
-        <h3>Dados</h3>
-        <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px;">Exportar ou restaurar tudo (lançamentos, orçamento, cartões, investimentos e categorias).</div>
-        <button class="btn secondary" onclick="exportarDados()">Exportar JSON</button>
-        <button class="btn secondary" onclick="document.getElementById('importFile').click()">Importar JSON</button>
-        <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importarDados(event)">
-      </div>
-
-      <!-- Um card só. O antigo "Sincronização entre dispositivos" pedia o objeto
-           firebaseConfig colado à mão e um código digitado — coisa da época em que
-           cada casal montava o próprio Firebase. Hoje a config é fixa no app e o
-           código vem da conta (ver resolveFamiliaEConecta), então aquilo só servia
-           para expor tripa técnica e para alguém apontar o app, sem querer, para o
-           código de outra família. O que sobrou de útil é o código, que mora aqui
-           porque é parte do convite. -->
-      <div class="card" style="max-width:460px;">
-        <h3>👥 Membros da família</h3>
-        <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px; line-height:1.5;">
-          Quem está nesta lista enxerga e edita os mesmos lançamentos, em tempo real,
-          em qualquer aparelho.
-        </div>
-        <div id="membrosLista" style="margin-bottom:14px;"></div>
-        <div class="field" style="margin-bottom:10px;">
-          <label>E-mail de quem você quer liberar</label>
-          <input type="email" id="membroEmailInput" placeholder="pessoa@email.com">
-        </div>
-        <button class="btn" onclick="adicionarMembro()">Adicionar membro</button>
-        <div id="membrosStatus" style="margin-top:10px; font-size:12.5px; font-weight:600;"></div>
-
-        <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--border);">
-          <div style="font-size:11px; color:var(--muted); font-weight:600; margin-bottom:6px;">CÓDIGO DA FAMÍLIA</div>
-          <div class="codigo-box">
-            <span class="valor" id="codigoFamiliaValor">—</span>
-            <button class="btn secondary" style="margin:0; padding:5px 11px; font-size:11.5px;" onclick="copiarCodigoFamilia()">Copiar</button>
+      <div class="grid config-cards">
+        <div class="card">
+          <h3>Conta</h3>
+          <div class="card-desc" id="loggedInAs"></div>
+          <div class="card-acoes">
+            <button class="btn secondary" onclick="handleLogout()">Sair</button>
           </div>
-          <div style="font-size:11.5px; color:var(--muted); margin-top:8px; line-height:1.5;">
-            Depois de liberar o e-mail acima, passe este código para a pessoa entrar.
-            Sem estar na lista, ninguém entra — mesmo sabendo o código.
+        </div>
+
+        <div class="card">
+          <h3>Aparência</h3>
+          <div class="card-desc">Vale só neste aparelho — cada pessoa da família escolhe o seu, e trocar o seu não muda o de ninguém.</div>
+          <div class="filter-tabs" id="temaFiltro" style="margin:0;">
+            <button class="filter-tab" data-tema-opt="escuro">Escuro</button>
+            <button class="filter-tab" data-tema-opt="claro">Claro</button>
+            <button class="filter-tab" data-tema-opt="auto">Automático</button>
           </div>
-          <div id="syncStatus" style="margin-top:10px; font-size:12px; font-weight:600;"></div>
+          <div style="font-size:11.5px; color:var(--muted); margin-top:9px;" id="temaDica"></div>
+        </div>
+
+        <!-- Este card era o único sem título: começava direto num campo, e de
+             relance parecia continuação do card de cima. -->
+        <div class="card">
+          <h3>Preferências</h3>
+          <div class="card-desc">A meta alimenta o Painel; o nome é só exibição neste aparelho.</div>
+          <div class="form-row" style="flex-direction:column; align-items:stretch;">
+            <div class="field"><label>Meta de economia mensal (R$)</label><input type="text" inputmode="decimal" id="cfgMeta" placeholder="1.000,00"></div>
+            <div class="field"><label>Nome (opcional)</label><input type="text" id="cfgNome"></div>
+          </div>
+          <div class="card-acoes" style="margin-top:14px;">
+            <button class="btn" onclick="saveConfig()">Salvar</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Dados</h3>
+          <div class="card-desc">Exportar ou restaurar tudo (lançamentos, orçamento, cartões, investimentos e categorias).</div>
+          <div class="card-acoes">
+            <button class="btn secondary" onclick="exportarDados()">Exportar JSON</button>
+            <button class="btn secondary" onclick="document.getElementById('importFile').click()">Importar JSON</button>
+          </div>
+          <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importarDados(event)">
+        </div>
+
+        <!-- Um card só. O antigo "Sincronização entre dispositivos" pedia o objeto
+             firebaseConfig colado à mão e um código digitado — coisa da época em que
+             cada casal montava o próprio Firebase. Hoje a config é fixa no app e o
+             código vem da conta (ver resolveFamiliaEConecta), então aquilo só servia
+             para expor tripa técnica e para alguém apontar o app, sem querer, para o
+             código de outra família. O que sobrou de útil é o código, que mora aqui
+             porque é parte do convite. -->
+        <div class="card">
+          <h3>Membros da família</h3>
+          <div class="card-desc">
+            Quem está nesta lista enxerga e edita os mesmos lançamentos, em tempo real,
+            em qualquer aparelho.
+          </div>
+          <div id="membrosLista" class="membros-lista"></div>
+          <div class="field" style="margin-bottom:12px;">
+            <label>E-mail de quem você quer liberar</label>
+            <input type="email" id="membroEmailInput" placeholder="pessoa@email.com">
+          </div>
+          <div class="card-acoes">
+            <button class="btn" onclick="adicionarMembro()">Adicionar membro</button>
+          </div>
+          <div id="membrosStatus" style="margin-top:10px; font-size:12.5px; font-weight:600;"></div>
+
+          <div class="card-sub">
+            <div class="card-sub-titulo">Código da família</div>
+            <div class="codigo-box">
+              <span class="valor" id="codigoFamiliaValor">—</span>
+              <button class="btn secondary" style="margin:0; padding:5px 11px; font-size:11.5px;" onclick="copiarCodigoFamilia()">Copiar</button>
+            </div>
+            <div style="font-size:11.5px; color:var(--muted); margin-top:8px; line-height:1.5;">
+              Depois de liberar o e-mail acima, passe este código para a pessoa entrar.
+              Sem estar na lista, ninguém entra — mesmo sabendo o código.
+            </div>
+            <div id="syncStatus" style="margin-top:10px; font-size:12px; font-weight:600;"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -3722,22 +3769,23 @@ function renderMembros(){
   const lista = document.getElementById('membrosLista'); if(!lista) return;
   if(!firestoreDocRef){
     lista.textContent = 'Conecte-se a uma família para ver os membros.';
-    lista.style.cssText = 'font-size:12.5px; color:var(--muted);';
+    lista.classList.add('aviso');
     return;
   }
-  lista.style.cssText = '';
+  lista.classList.add('aviso');
   lista.textContent = 'Carregando...';
   firestoreDocRef.get().then(snap=>{
     const membros = (snap.exists && snap.data() && snap.data().membros) || [];
     const meu = ((firebase.auth().currentUser || {}).email || '').toLowerCase();
     lista.textContent = '';
     if(!membros.length){ lista.textContent = 'Nenhum membro cadastrado.'; return; }
+    lista.classList.remove('aviso');
     membros.forEach(email=>{
       const souEu = (email||'').toLowerCase() === meu;
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--border); font-size:13px;';
+      row.className = 'membro-row';
       const nome = document.createElement('div');
-      nome.style.flex = '1';
+      nome.className = 'nome';
       nome.textContent = email + (souEu ? ' (você)' : '');
       row.appendChild(nome);
       /* ninguém se remove sozinho — evita a família ficar sem dono */
@@ -3745,7 +3793,6 @@ function renderMembros(){
         const rm = document.createElement('button');
         rm.className = 'btn secondary';
         rm.textContent = 'Remover';
-        rm.style.cssText = 'padding:3px 9px; font-size:11.5px;';
         rm.onclick = ()=> removerMembro(email);
         row.appendChild(rm);
       }
