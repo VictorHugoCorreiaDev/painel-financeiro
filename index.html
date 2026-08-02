@@ -845,12 +845,13 @@ aplicarTema();
     <section class="view" id="view-contasfixas">
       <div class="topbar"><h2>Contas Fixas</h2><div class="period" id="periodLabelCF">—</div></div>
       <div class="card">
-        <div style="font-size:12.5px; color:var(--muted); margin-bottom:14px;">Cadastre contas recorrentes (aluguel, internet, luz...). O status "Paga" é detectado automaticamente quando existe um lançamento do mês batendo com o nome da conta.</div>
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:14px;">Cadastre contas recorrentes (aluguel, internet, luz...). O status "Paga" é detectado automaticamente quando existe um lançamento do mês batendo com o nome da conta. Se a conta é debitada num cartão, escolha o cartão: aí o "Marcar como paga" já joga o valor na fatura certa.</div>
         <div class="form-row">
           <div class="field"><label>Nome da conta</label><input type="text" id="cfNome" placeholder="Ex: Aluguel"></div>
           <div class="field"><label>Categoria</label><select id="cfCategoria"><option value="">Categoria...</option></select></div>
           <div class="field"><label>Valor esperado (R$)</label><input type="text" inputmode="decimal" id="cfValor" placeholder="1.500,00"></div>
           <div class="field" style="max-width:110px;"><label>Dia venc.</label><input type="number" step="1" min="1" max="31" id="cfDia" placeholder="5"></div>
+          <div class="field"><label>Pago no cartão</label><select id="cfCartao"></select></div>
           <button class="btn" onclick="addContaFixa()">+ Adicionar</button>
         </div>
         <div class="cf-row cf-header" style="border-bottom:1px solid var(--border); font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">
@@ -2004,12 +2005,25 @@ function renderPainel(){
       if(!pendentes.length){
         nota.textContent = '';
       } else {
+        /* A projeção só pode descontar o que realmente cai NESTE mês. Conta
+           debitada no cartão vira despesa quando a fatura vence, então marcá-la
+           como paga não move o saldo de agora — somar tudo aqui prometeria uma
+           queda de saldo que não vai acontecer. */
+        const noMes = pendentes.filter(cf=>{
+          const d = mesPagamentoContaFixa(cf, state.year, state.month);
+          return d.ano===state.year && d.mes===state.month;
+        });
+        const totalNoMes = noMes.reduce((s,cf)=>s+cf.valorEsperado, 0);
+        const totalNaFatura = totalPendente - totalNoMes;
         nota.textContent = '';
         nota.appendChild(document.createTextNode('Ainda não entrou em Despesas do mês — cada conta entra quando você marca como paga. Com todas pagas, o saldo do mês fica em '));
         const b = document.createElement('b');
-        b.textContent = fmt(saldo - totalPendente);
+        b.textContent = fmt(saldo - totalNoMes);
         nota.appendChild(b);
         nota.appendChild(document.createTextNode('.'));
+        if(totalNaFatura > 0){
+          nota.appendChild(document.createTextNode(` Fora ${fmt(totalNaFatura)} que é debitado no cartão e só vira despesa quando a fatura vencer.`));
+        }
       }
       const detalhe = document.getElementById('contasAPagarDetalhe');
       detalhe.textContent = [...pendentes]
@@ -2438,6 +2452,21 @@ function addOrcamentoCat(){
   renderOrcamento();
 }
 
+/* Em que mês o dinheiro sai quando esta conta fixa for marcada como paga.
+
+   Repara que NÃO é o mesmo critério de `contaFixaTransacao`, e é de propósito.
+   Aquela pergunta é "a conta deste mês já foi quitada?", e a resposta é a data
+   em que se pagou — conta de julho paga em 10/07 no cartão está paga em julho,
+   mesmo com o dinheiro saindo em setembro. Usar o mês da fatura ali faria o app
+   cobrar conta já paga, que é o alarme falso que a gente evita. Esta função
+   responde a outra pergunta: quando o valor pesa no bolso. */
+function mesPagamentoContaFixa(cf, year, month){
+  const cartao = (db.cartoes||[]).find(c=>c.id===cf.cartaoId);
+  if(!cartao) return { ano:year, mes:month };
+  const dia = diaNoMes(year, month, cf.diaVencimento||1);
+  const f = faturaDaCompra(isoData(year, month, dia), cartao);
+  return { ano:f.ano, mes:f.mes };
+}
 function contaFixaTransacao(cf, year, month){
   return db.transacoes.find(t=>{
     if(t.valor>=0) return false;
@@ -2532,6 +2561,14 @@ function renderContasFixas(){
   if(catSelect){
     catSelect.innerHTML = '<option value="">Categoria...</option>' + cats.map(c=>`<option value="${escAttr(c)}">${c}</option>`).join('');
   }
+  const opcoesCartao = (sel)=> '<option value="">Nenhum (à vista)</option>' +
+    (db.cartoes||[]).map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${escAttr(c.nome)}</option>`).join('');
+  const carSelect = document.getElementById('cfCartao');
+  if(carSelect){
+    const anterior = carSelect.value;
+    carSelect.innerHTML = opcoesCartao(null);
+    if(anterior && (db.cartoes||[]).some(c=>String(c.id)===anterior)) carSelect.value = anterior;
+  }
   if(!db.contasFixas.length){ wrap.innerHTML = '<div class="empty">Nenhuma conta fixa cadastrada.</div>'; return; }
   wrap.innerHTML = db.contasFixas.map(cf=>{
     if(cf.id===editingCFId){
@@ -2541,6 +2578,7 @@ function renderContasFixas(){
         <div><input type="number" step="1" min="1" max="31" class="orc-input" id="editCfDia_${cf.id}" value="${cf.diaVencimento}"></div>
         <div><input type="text" inputmode="decimal" class="orc-input" id="editCfValor_${cf.id}" value="${formatValorInput(cf.valorEsperado)}"></div>
         <div class="status">
+          <select class="orc-input" id="editCfCartao_${cf.id}" style="max-width:150px;">${opcoesCartao(cf.cartaoId)}</select>
           <button class="btn danger-ghost" style="color:var(--green);" onclick="saveEditContaFixa(${cf.id})" title="Salvar">✓</button>
           <button class="btn danger-ghost" onclick="cancelEditContaFixa()" title="Cancelar">✕</button>
         </div>
@@ -2548,8 +2586,15 @@ function renderContasFixas(){
     }
     const trans = contaFixaTransacao(cf, state.year, state.month);
     const paga = !!trans;
+    const cartaoCf = (db.cartoes||[]).find(c=>c.id===cf.cartaoId);
+    /* Onde o valor vai cair quando esta conta for marcada como paga. Sem cartão é
+       o próprio mês; com cartão é a fatura, e aí a linha precisa avisar — senão
+       marcar como paga não mexe nas despesas do mês e parece que não funcionou. */
+    const destino = cartaoCf ? mesPagamentoContaFixa(cf, state.year, state.month) : null;
+    const avisoCartao = cartaoCf
+      ? `<span class="lanc-fatura">${cartaoCf.nome} · fatura ${labelMesAno(destino.ano, destino.mes)}</span>` : '';
     return `<div class="cf-row">
-      <div><span class="badge-cat"><span class="sw" style="background:${colorFor(cf.categoria)}"></span>${cf.nome}</span></div>
+      <div><span class="badge-cat"><span class="sw" style="background:${colorFor(cf.categoria)}"></span>${cf.nome}</span>${avisoCartao}</div>
       <div><span class="mobile-label">Categoria</span>${cf.categoria}</div>
       <div><span class="mobile-label">Venc.</span>dia ${cf.diaVencimento}</div>
       <div><span class="mobile-label">Valor</span><span class="num">${fmt(cf.valorEsperado)}</span></div>
@@ -2572,7 +2617,11 @@ function addContaFixa(){
   if(!nome || !categoria || isNaN(valorEsperado) || valorEsperado<0 || !diaVencimento || diaVencimento<1 || diaVencimento>31){
     avisar('Preencha nome, categoria, valor e um dia de vencimento válido (1-31).', { tipo:'erro' }); return;
   }
-  db.contasFixas.push({ id:nextId(db.contasFixas), nome, categoria, valorEsperado, diaVencimento });
+  const cartaoIdRaw = parseInt(document.getElementById('cfCartao').value, 10);
+  const cartaoId = (db.cartoes||[]).some(c=>c.id===cartaoIdRaw) ? cartaoIdRaw : null;
+  const nova = { id:nextId(db.contasFixas), nome, categoria, valorEsperado, diaVencimento };
+  if(cartaoId) nova.cartaoId = cartaoId;
+  db.contasFixas.push(nova);
   saveDB();
   document.getElementById('cfNome').value=''; document.getElementById('cfValor').value=''; document.getElementById('cfDia').value='';
   renderContasFixas();
@@ -2605,7 +2654,10 @@ function saveEditContaFixa(id){
   }
   const cf = db.contasFixas.find(c=>c.id===id);
   if(!cf) return;
+  const cartaoIdRaw = parseInt(document.getElementById('editCfCartao_'+id).value, 10);
+  const cartaoId = (db.cartoes||[]).some(c=>c.id===cartaoIdRaw) ? cartaoIdRaw : null;
   cf.nome = nome; cf.categoria = categoria; cf.diaVencimento = diaVencimento; cf.valorEsperado = valorEsperado;
+  if(cartaoId) cf.cartaoId = cartaoId; else delete cf.cartaoId;
   saveDB();
   editingCFId = null;
   renderContasFixas();
@@ -2617,11 +2669,24 @@ function marcarContaFixaPaga(id){
   const daysInMonth = new Date(year, month+1, 0).getDate();
   const dia = Math.min(cf.diaVencimento||1, daysInMonth);
   const data = `${year}-${String(month+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
-  db.transacoes.push({ id:nextId(db.transacoes), data, desc:cf.nome, valor:-Math.abs(cf.valorEsperado), conta:'' });
+  const lanc = { id:nextId(db.transacoes), data, desc:cf.nome, valor:-Math.abs(cf.valorEsperado), conta:'' };
+  /* Conta fixa debitada no cartão vira lançamento COM cartão: a data continua
+     sendo a do vencimento da conta, e o valor cai na fatura que engolir essa
+     data — igualzinho a qualquer outra compra. Antes o lançamento nascia sempre
+     à vista, e quem paga no cartão não tinha como registrar direito. */
+  if(cf.cartaoId && (db.cartoes||[]).some(c=>c.id===cf.cartaoId)) lanc.cartaoId = cf.cartaoId;
+  db.transacoes.push(lanc);
   saveDB();
   renderContasFixas();
   buildSidebarPeriod();
   if(state.view==='painel') renderPainel();
+  if(lanc.cartaoId){
+    const d = mesDeCaixa(lanc);
+    avisar(`${cf.nome} marcada como paga.`, {
+      tipo:'ok',
+      detalhe:`Como é paga no cartão, o valor entra nas despesas de ${MONTHS[d.mes]}/${d.ano}, quando a fatura vence.`
+    });
+  }
 }
 async function desmarcarContaFixaPaga(id){
   const cf = db.contasFixas.find(c=>c.id===id);
@@ -2985,6 +3050,7 @@ async function deleteCartao(id){
   });
   if(!ok) return;
   vinculados.forEach(t=>{ delete t.cartaoId; });
+  (db.contasFixas||[]).forEach(cf=>{ if(cf.cartaoId===id) delete cf.cartaoId; });
   db.cartoes = db.cartoes.filter(x=>x.id!==id);
   db.faturasPagas = (db.faturasPagas||[]).filter(p=>p.cartaoId!==id);
   saveDB();
