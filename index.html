@@ -272,6 +272,15 @@
   .fat-item b{ color:var(--text); font-weight:500; }
   .fat-toggle{ background:none; border:none; padding:0; font-size:11.5px; font-weight:600;
     color:var(--amber-texto); text-align:left; }
+  /* Os totais em texto não são enfeite: no tema claro as cores da paleta ficam
+     abaixo de 3:1 contra o branco, então o valor precisa estar legível fora da
+     barra. Também é o que garante que a identidade do cartão nunca dependa só
+     da cor — o nome vem escrito ao lado do quadradinho. */
+  .fat-totais{ display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:14px;
+    padding-top:12px; border-top:1px solid var(--panel-2); }
+  .fat-total{ display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); }
+  .fat-total .sw{ width:9px; height:9px; border-radius:3px; flex-shrink:0; }
+  .fat-total b{ color:var(--text); font-weight:600; }
 
   .car-row{ display:grid; grid-template-columns:1.4fr 80px 80px 120px 1.5fr; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
   .car-row .status{ font-size:12px; font-weight:700; text-align:right; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
@@ -864,6 +873,12 @@ aplicarTema();
     <section class="view" id="view-cartoes">
       <div class="topbar"><h2>Cartões</h2><div class="period" id="periodLabelCar">—</div></div>
       <div id="faturasWrap" class="grid faturas-grid"></div>
+      <div class="card" id="faturaChartCard" style="margin-bottom:16px; display:none;">
+        <h3>Faturas ao longo do ano</h3>
+        <div style="font-size:12px; color:var(--muted); margin:-4px 0 12px;">Cada barra é o que vence naquele mês, somando as compras que caíram na fatura.</div>
+        <div class="chart-tall"><canvas id="faturaChart"></canvas></div>
+        <div id="faturaTotais" class="fat-totais"></div>
+      </div>
       <div class="card">
         <div style="font-size:12.5px; color:var(--muted); margin-bottom:14px;">Cadastre seus cartões de crédito. Compras marcadas com um cartão entram como despesa no <b style="color:var(--text)">mês em que a fatura vence</b>, e não no mês da compra — que é como o dinheiro sai de verdade. Os cartões valem para a família toda.</div>
         <div class="form-row">
@@ -2210,7 +2225,7 @@ function rowHtml(t){
     <td>${t.desc}</td>
     <td><span class="badge-cat"><span class="sw" style="background:${colorFor(cat)}"></span>${cat}</span></td>
     <td><span class="pill ${tipo==='Receita'?'receita':'despesa'}">${tipo}</span></td>
-    <td>${cartao ? `<span class="badge-cat"><span class="sw" style="background:${colorFor(cartao.nome)}"></span>${cartao.nome}</span>` : (t.conta||'—')}</td>
+    <td>${cartao ? `<span class="badge-cat"><span class="sw" style="background:${corDoCartao(cartao)}"></span>${cartao.nome}</span>` : (t.conta||'—')}</td>
     <td style="text-align:right;" class="num">${fmt(t.valor)}</td>
     <td style="white-space:nowrap;">
       <button class="btn danger-ghost" onclick="startEditTransacao(${t.id})" title="Editar">✎</button>
@@ -2245,7 +2260,7 @@ function groupSummaryHtml(group){
     </td>
     <td><span class="badge-cat"><span class="sw" style="background:${colorFor(cat)}"></span>${cat}</span></td>
     <td><span class="pill ${tipo==='Receita'?'receita':'despesa'}">${tipo}</span></td>
-    <td>${cartaoDe(first) ? `<span class="badge-cat"><span class="sw" style="background:${colorFor(cartaoDe(first).nome)}"></span>${cartaoDe(first).nome}</span>` : (first.conta||'—')}</td>
+    <td>${cartaoDe(first) ? `<span class="badge-cat"><span class="sw" style="background:${corDoCartao(cartaoDe(first))}"></span>${cartaoDe(first).nome}</span>` : (first.conta||'—')}</td>
     <td style="text-align:right;" class="num">${fmt(sumValor)}</td>
     <td style="white-space:nowrap;">
       <button class="btn danger-ghost" onclick="deleteGrupoTransacoes('${group.key.replace(/'/g,"\\'")}')" title="Excluir todas as parcelas">🗑</button>
@@ -2713,6 +2728,19 @@ function cartaoNome(id){
   const c = (db.cartoes||[]).find(x=>x.id===id);
   return c ? c.nome : '';
 }
+/* Cor do cartão. Não dá para usar colorFor() aqui: ela procura o nome na lista
+   de CATEGORIAS, e "C6 Bank" não é categoria — o indexOf dava -1 e todo cartão
+   caía na mesma cor. Com um cartão só ninguém percebia; com dois, os dois
+   ficavam idênticos no gráfico e nas etiquetas.
+
+   A cor sai do `id`, não da posição na lista: assim ela pertence ao cartão e
+   não muda quando outro cartão é excluído. Cor que se remaneja ao apagar um
+   item repinta os que sobraram, e aí a legenda de ontem mente sobre o gráfico
+   de hoje. */
+function corDoCartao(cartao){
+  if(!cartao) return CAT_PALETTE[0];
+  return CAT_PALETTE[Math.max(0, cartao.id-1) % CAT_PALETTE.length];
+}
 /* Soma da fatura de um cartão que vence no mês dado. Receita lançada no cartão
    (estorno) entra abatendo, que é o que ela faz na fatura de verdade. */
 function faturaTotal(cartao, year, month){
@@ -2854,7 +2882,7 @@ function renderFaturas(){
   wrap.innerHTML = db.cartoes.map(c=>{
     const s = situacaoCartao(c);
     const diasFecha = diasAte(s.aberta.fecha);
-    const cor = colorFor(c.nome);
+    const cor = corDoCartao(c);
 
     const aPagarHtml = s.aPagar.map(f=>{
       const dias = diasAte(f.venc);
@@ -2940,9 +2968,71 @@ function renderFaturas(){
   }).join('');
 }
 
+/* Barras empilhadas por mês, uma faixa por cartão: a pergunta é "quanto vence
+   em cada mês e de qual cartão vem", que é magnitude no tempo mais identidade.
+   Empilhar responde as duas de uma vez, e com um cartão só degrada para um
+   gráfico de barras comum, sem virar outra coisa. */
+function renderFaturaChart(){
+  const card = document.getElementById('faturaChartCard');
+  if(!card) return;
+  destroy('faturaChart');
+  if(!db.cartoes.length){ card.style.display='none'; return; }
+
+  const series = db.cartoes.map(c=>({
+    cartao: c,
+    valores: Array.from({length:12}, (_,m)=> faturaTotal(c, state.year, m))
+  }));
+  const temAlgum = series.some(s=> s.valores.some(v=>v>0));
+  if(!temAlgum){ card.style.display='none'; return; }
+  card.style.display='';
+
+  const corSuperficie = corVar('--panel');
+  charts['faturaChart'] = new Chart(document.getElementById('faturaChart'), {
+    type:'bar',
+    data:{ labels:MONTHS, datasets: series.map(s=>({
+      label: s.cartao.nome,
+      data: s.valores,
+      backgroundColor: corDoCartao(s.cartao),
+      /* 2px da cor da superfície entre as faixas empilhadas: sem esse respiro
+         duas faixas vizinhas se colam e viram um bloco só. */
+      borderColor: corSuperficie,
+      borderWidth: 2,
+      borderRadius: 4,
+      borderSkipped: false,
+      maxBarThickness: 22
+    }))},
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        /* Um cartão só não precisa de legenda — o título já diz de quem é.
+           De dois para cima ela é obrigatória, senão a identidade fica só na cor. */
+        legend:{ display: series.length>1, position:'top', align:'end',
+          labels:{ color:corVar('--muted'), usePointStyle:true, boxWidth:6, font:{size:11.5} } },
+        tooltip:{ backgroundColor:corVar('--panel-2'), borderColor:corVar('--border'), borderWidth:1,
+          titleColor:corVar('--text'), bodyColor:corVar('--text'),
+          callbacks:{ label:ctx=>` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } }
+      },
+      scales:{
+        x:{ stacked:true, grid:{display:false},
+          ticks:{ color:corVar('--muted'), font:{family:'IBM Plex Mono', size:10.5} } },
+        y:{ stacked:true, beginAtZero:true, grid:{ color:corVar('--grid-linha') },
+          ticks:{ color:corVar('--muted'), font:{family:'IBM Plex Mono', size:10.5},
+            callback:v=>'R$'+(v/1000)+'k' } }
+      }
+    }
+  });
+
+  document.getElementById('faturaTotais').innerHTML = series.map(s=>{
+    const total = s.valores.reduce((a,b)=>a+b, 0);
+    return `<span class="fat-total"><span class="sw" style="background:${corDoCartao(s.cartao)}"></span>${s.cartao.nome} em ${state.year}: <b class="num">${fmt(total)}</b></span>`;
+  }).join('');
+}
+
 let editingCartaoId = null;
 function renderCartoes(){
   renderFaturas();
+  renderFaturaChart();
   const wrap = document.getElementById('cartoesWrap');
   if(!wrap) return;
   if(!db.cartoes.length){
@@ -2966,7 +3056,7 @@ function renderCartoes(){
     const pctLimite = c.limite ? Math.round(total/c.limite*100) : 0;
     const estourou = c.limite && total > c.limite;
     return `<div class="car-row">
-      <div><span class="badge-cat"><span class="sw" style="background:${colorFor(c.nome)}"></span>${c.nome}</span></div>
+      <div><span class="badge-cat"><span class="sw" style="background:${corDoCartao(c)}"></span>${c.nome}</span></div>
       <div><span class="mobile-label">Fecha</span>dia ${c.diaFechamento}</div>
       <div><span class="mobile-label">Vence</span>dia ${c.diaVencimento}</div>
       <div><span class="mobile-label">Limite</span>${c.limite ? `<span class="num">${fmt(c.limite)}</span>` : '—'}</div>
