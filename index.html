@@ -264,6 +264,7 @@
     font-size:12px; padding:9px 11px; border-radius:9px; background:var(--panel-2); }
   .fat-linha.urgente{ background:rgba(232,99,107,.15); }
   .fat-linha .rot{ color:var(--muted); font-weight:600; }
+  .fat-acao{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
   .fat-linha.urgente .rot{ color:var(--coral); }
   .fat-limite-topo{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--muted); margin-bottom:5px; }
   .fat-itens{ font-size:12px; border-top:1px solid var(--panel-2); padding-top:9px; }
@@ -1022,6 +1023,7 @@ function defaultDB(){
     cartoes: [
       {id:1, nome:'Cartão de Crédito', diaFechamento:28, diaVencimento:5, limite:5000}
     ],
+    faturasPagas: [],
     transacoes: [
       {id:1, data:'2026-07-01', desc:'Salário mensal', valor:5500, conta:'Conta Corrente'},
       {id:2, data:'2026-07-02', desc:'Aluguel', valor:-1500, conta:'Conta Corrente'},
@@ -1065,6 +1067,7 @@ function basePadraoFamilia(){
   base.transacoes = [];
   base.contasFixas = [];
   base.cartoes = [];
+  base.faturasPagas = [];
   base.carteira.precos = {};
   base.carteira.posicoes = {};
   base.carteira.classes.forEach(c=>{ base.carteira.posicoes[c.key] = []; });
@@ -1636,6 +1639,24 @@ function migrateDB(){
      `cartaoId` — que é justamente o que faz tudo que já existe continuar caindo
      no mês da própria data, sem migração nenhuma. */
   db.cartoes = db.cartoes || [];
+
+  /* Antes de existir rastreio de pagamento, o painel presumia que fatura com
+     vencimento no passado já tinha sido paga — era só sumir com ela. Agora que
+     a fatura fica em aberto até alguém marcar, ligar isso numa base que já usa
+     cartão faria toda fatura antiga ressuscitar como "vencida" de uma vez.
+
+     Então, na primeira vez, gravamos a presunção que o app já fazia: tudo que
+     venceu antes de hoje nasce pago. `presumida` guarda que foi o app quem
+     concluiu, não a pessoa — daí a tela não afirmar data de pagamento nesses. */
+  if(!Array.isArray(db.faturasPagas)){
+    db.faturasPagas = [];
+    const hoje = hojeISO();
+    (db.cartoes||[]).forEach(c=>{
+      faturasDoCartao(c).forEach(f=>{
+        if(f.venc < hoje) db.faturasPagas.push({ cartaoId:c.id, ano:f.ano, mes:f.mes, dataPagamento:null, presumida:true });
+      });
+    });
+  }
 
   /* Regra sem `tipo` é anterior a esta funcionalidade. Migrar tudo para 'ambos'
      preservaria o comportamento antigo ao pé da letra, mas deixaria os dois
@@ -2632,7 +2653,8 @@ function labelMesAno(ano, mes){ return `${MONTHS[mes].toLowerCase()}/${String(an
    por mês, que é o que o cartão faz. Ordenadas por vencimento. */
 function faturasDoCartao(cartao){
   const mapa = new Map();
-  db.transacoes.forEach(t=>{
+  /* roda também dentro de migrateDB, antes do app ter certeza da forma da base */
+  (db.transacoes||[]).forEach(t=>{
     if(t.cartaoId !== cartao.id) return;
     const f = faturaDaCompra(t.data, cartao);
     const chave = f.ano + '-' + f.mes;
@@ -2646,6 +2668,43 @@ function faturasDoCartao(cartao){
   return [...mapa.values()].sort((a,b)=> a.venc.localeCompare(b.venc));
 }
 
+/* Pagamento de fatura é um estado, nunca um lançamento.
+
+   A tentação é gravar "Pagamento fatura Nubank -R$ 2.340" nas despesas, e isso
+   contaria o mesmo dinheiro duas vezes: as compras da fatura já são a despesa,
+   posicionadas no mês do vencimento. Marcar como paga só diz que aquele mês foi
+   quitado — não move um centavo em lugar nenhum. */
+function faturaPagaRegistro(cartaoId, ano, mes){
+  return (db.faturasPagas||[]).find(p=> p.cartaoId===cartaoId && p.ano===ano && p.mes===mes) || null;
+}
+function marcarFaturaPaga(cartaoId, ano, mes){
+  if(faturaPagaRegistro(cartaoId, ano, mes)) return;
+  db.faturasPagas = db.faturasPagas || [];
+  db.faturasPagas.push({ cartaoId, ano, mes, dataPagamento: hojeISO(), presumida:false });
+  saveDB();
+  renderCartoes();
+  /* A linha "última quitada" nem sempre passa a mostrar esta fatura — quitando
+     uma antiga fora de ordem, a mais recente continua sendo outra. Sem um aviso
+     dizendo o que acabou de acontecer, o clique parece não ter feito nada. */
+  avisar(`Fatura de ${MONTHS[mes]}/${ano} marcada como paga.`, {
+    tipo:'ok',
+    detalhe:'As compras dela continuam nas despesas do mês do vencimento — quitar não cria lançamento nem muda nenhum total.'
+  });
+}
+async function desmarcarFaturaPaga(cartaoId, ano, mes){
+  const reg = faturaPagaRegistro(cartaoId, ano, mes);
+  if(!reg) return;
+  const ok = await confirmar(`Marcar a fatura de ${MONTHS[mes]}/${ano} como não paga?`, {
+    titulo: 'Fatura em aberto',
+    detalhe: 'Ela volta para a lista de faturas a pagar e para o limite comprometido.',
+    confirmar: 'Marcar como não paga'
+  });
+  if(!ok) return;
+  db.faturasPagas = db.faturasPagas.filter(p=> !(p.cartaoId===cartaoId && p.ano===ano && p.mes===mes));
+  saveDB();
+  renderCartoes();
+}
+
 /* A situação do cartão hoje, que é diferente do mês que a pessoa está navegando.
 
    A fatura ABERTA é a que uma compra feita hoje cairia — ainda dá para gastar
@@ -2653,22 +2712,29 @@ function faturasDoCartao(cartao){
    marcou). As FUTURAS são parcela que já está comprometida mas ainda vai levar
    meses para chegar.
 
-   O app não sabe o que foi pago de verdade, então "vencimento ainda não passou"
-   é o melhor palpite para fatura em aberto — daí o rótulo ser "comprometido", e
-   não "usado": a diferença importa quando alguém compara com o app do banco. */
+   Fatura fechada fica em A PAGAR até alguém marcar como paga — inclusive depois
+   de vencer. Antes o filtro era "vencimento ainda não passou", e uma fatura
+   esquecida simplesmente sumia da tela no dia seguinte ao vencimento, que é
+   justamente quando ela mais precisa aparecer.
+
+   "Comprometido" e não "usado": é tudo que ainda não foi quitado, parcela
+   futura inclusive. A diferença importa na hora de comparar com o app do
+   banco, que costuma mostrar só a fatura corrente. */
 function situacaoCartao(cartao){
-  const hoje = hojeISO();
   const faturas = faturasDoCartao(cartao);
-  const ab = faturaDaCompra(hoje, cartao);
+  const ab = faturaDaCompra(hojeISO(), cartao);
   const vencAberta = isoData(ab.ano, ab.mes, ab.dia);
   const aberta = faturas.find(f=>f.venc===vencAberta)
               || { ano:ab.ano, mes:ab.mes, venc:vencAberta, total:0, itens:[] };
   aberta.fecha = isoData(ab.fech.ano, ab.fech.mes, ab.fech.dia);
+  const paga = f => !!faturaPagaRegistro(cartao.id, f.ano, f.mes);
   return {
     aberta,
-    aPagar:  faturas.filter(f=> f.venc >= hoje && f.venc < vencAberta),
+    aPagar:  faturas.filter(f=> f.venc < vencAberta && !paga(f)),
     futuras: faturas.filter(f=> f.venc > vencAberta),
-    comprometido: faturas.filter(f=> f.venc >= hoje).reduce((s,f)=>s+f.total, 0)
+    /* a aberta nunca está em faturasPagas: só dá para quitar o que já fechou */
+    comprometido: faturas.filter(f=> !paga(f)).reduce((s,f)=>s+f.total, 0),
+    ultimaPaga: faturas.filter(paga).sort((a,b)=> b.venc.localeCompare(a.venc))[0] || null
   };
 }
 
@@ -2717,11 +2783,33 @@ function renderFaturas(){
       /* Vencida ou vencendo em até 3 dias vira coral: é o único item aqui que
          pode custar juros se passar batido. */
       const urgente = dias <= 3;
+      const rotulo = dias < 0
+        ? `Vencida · venceu ${ddmm(f.venc)} (${textoDias(dias)})`
+        : `A pagar · vence ${ddmm(f.venc)} (${textoDias(dias)})`;
       return `<div class="fat-linha ${urgente?'urgente':''}">
-        <span class="rot">A pagar · vence ${ddmm(f.venc)} (${textoDias(dias)})</span>
-        <span class="num" style="font-weight:700;">${fmt(f.total)}</span>
+        <span class="rot">${rotulo}</span>
+        <span class="fat-acao">
+          <span class="num" style="font-weight:700;">${fmt(f.total)}</span>
+          <button class="btn" style="padding:4px 9px; font-size:10.5px;"
+            onclick="marcarFaturaPaga(${c.id},${f.ano},${f.mes})">Paga</button>
+        </span>
       </div>`;
     }).join('');
+
+    /* Só a última quitada, com desfazer. A lista inteira de faturas pagas seria
+       histórico, e histórico já é a tela de Lançamentos. */
+    let pagaHtml = '';
+    if(s.ultimaPaga){
+      const reg = faturaPagaRegistro(c.id, s.ultimaPaga.ano, s.ultimaPaga.mes);
+      const quando = (reg && !reg.presumida && reg.dataPagamento)
+        ? ` (marcada em ${ddmm(reg.dataPagamento)})`
+        : ' (presumida paga)';
+      pagaHtml = `<div class="fat-datas fat-acao" style="justify-content:flex-start;">
+        <span>Última fatura quitada: <b>${labelMesAno(s.ultimaPaga.ano, s.ultimaPaga.mes)}</b>${quando}</span>
+        <button class="btn danger-ghost" style="padding:2px 6px;"
+          onclick="desmarcarFaturaPaga(${c.id},${s.ultimaPaga.ano},${s.ultimaPaga.mes})" title="Marcar como não paga">↺</button>
+      </div>`;
+    }
 
     const futurasTotal = s.futuras.reduce((acc,f)=>acc+f.total, 0);
     const futurasHtml = s.futuras.length
@@ -2766,6 +2854,7 @@ function renderFaturas(){
         <div class="fat-datas">Fecha <b>${ddmm(s.aberta.fecha)}</b> (${textoDias(diasFecha)}) · vence <b>${ddmm(s.aberta.venc)}</b></div>
       </div>
       ${aPagarHtml}
+      ${pagaHtml}
       ${futurasHtml}
       ${limiteHtml}
       ${itensHtml}
@@ -2848,6 +2937,19 @@ function saveEditCartao(id){
   if(limiteRaw && (isNaN(limite) || limite<0)){ avisar('Limite inválido.', { tipo:'erro' }); return; }
   const c = db.cartoes.find(x=>x.id===id);
   if(!c) return;
+  /* Mexer no ciclo remonta as faturas: o que era a fatura de agosto pode virar a
+     de setembro, e a marca de "paga" ficaria pendurada num mês que não existe
+     mais — ou pior, faria uma fatura futura nascer quitada. Limpar é a única
+     leitura honesta, mas a pessoa precisa saber que perdeu as marcas. */
+  const cicloMudou = c.diaFechamento !== dias.diaFechamento || c.diaVencimento !== dias.diaVencimento;
+  const marcas = (db.faturasPagas||[]).filter(p=>p.cartaoId===id).length;
+  if(cicloMudou && marcas){
+    db.faturasPagas = db.faturasPagas.filter(p=>p.cartaoId!==id);
+    avisar(`${marcas} marca${marcas>1?'s':''} de fatura paga foi${marcas>1?'ram':''} limpa${marcas>1?'s':''} neste cartão.`, {
+      tipo:'info',
+      detalhe:'Mudar fechamento ou vencimento remonta as faturas, então as marcas antigas deixam de corresponder.'
+    });
+  }
   c.nome = nome; c.diaFechamento = dias.diaFechamento; c.diaVencimento = dias.diaVencimento; c.limite = limite;
   saveDB();
   editingCartaoId = null;
@@ -2871,6 +2973,7 @@ async function deleteCartao(id){
   if(!ok) return;
   vinculados.forEach(t=>{ delete t.cartaoId; });
   db.cartoes = db.cartoes.filter(x=>x.id!==id);
+  db.faturasPagas = (db.faturasPagas||[]).filter(p=>p.cartaoId!==id);
   saveDB();
   renderCartoes(); populateCartaoSelects(); buildSidebarPeriod();
 }
