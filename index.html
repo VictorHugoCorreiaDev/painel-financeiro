@@ -2152,7 +2152,7 @@ let expandedGroupKeys = new Set();
 const PARCELA_RE = /^(.*) \((\d+)\/(\d+)\)$/;
 /* Uma parcela agrupada conta como UMA entrada aqui, igual ao que se vê na tela.
    Paginar pelas transações cruas partiria um grupo no meio da página. */
-const LANC_POR_PAGINA = 20;
+const LANC_POR_PAGINA = 10;
 let lancPage = 0;
 /* Qual mês a lista desenhou por último. Serve para recomeçar na página 1 quando
    o período muda — a página 3 do mês anterior não quer dizer nada no mês novo. */
