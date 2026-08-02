@@ -247,6 +247,17 @@
   .cf-row{ display:grid; grid-template-columns:1.2fr 1fr 70px 110px 1.5fr; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
   .cf-row .status{ font-size:12px; font-weight:700; text-align:right; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
 
+  .car-row{ display:grid; grid-template-columns:1.4fr 80px 80px 120px 1.5fr; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
+  .car-row .status{ font-size:12px; font-weight:700; text-align:right; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+  /* A linha que explica em que fatura a compra vai cair. Fica sob o formulário
+     de despesa, onde a decisão está sendo tomada — depois de salvo, o mesmo
+     recado reaparece embaixo da data na lista. */
+  .fatura-hint{ font-size:12px; color:var(--muted); margin-top:10px; }
+  .fatura-hint b{ color:var(--amber-texto); font-weight:700; }
+  .fatura-hint:empty{ display:none; }
+  .lanc-fatura{ display:block; font-size:10.5px; color:var(--amber-texto); font-weight:700;
+    text-transform:uppercase; letter-spacing:.03em; margin-top:2px; }
+
   .cat-row{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 132px 40px; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
   .cat-tipo-sel{ width:100%; padding:5px 8px; border-radius:7px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); font-size:12px; font-weight:600; }
 
@@ -523,6 +534,11 @@
     .cf-row .status{ justify-content:flex-start; }
     .cf-row > div{ display:flex; align-items:center; gap:8px; }
 
+    .car-header{ display:none; }
+    .car-row{ grid-template-columns:1fr; gap:6px; padding:14px 0; }
+    .car-row .status{ justify-content:flex-start; text-align:left; }
+    .car-row > div{ display:flex; align-items:center; gap:8px; }
+
     .cat-header{ display:none; }
     .cat-row{ grid-template-columns:1fr; gap:6px; padding:14px 0; }
     .cat-row > div{ display:flex; align-items:center; gap:8px; }
@@ -655,6 +671,7 @@ aplicarTema();
         <button class="nav-btn" data-view="lancamentos"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span>Lançamentos</button>
         <button class="nav-btn" data-view="orcamento"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span>Orçamento</button>
         <button class="nav-btn" data-view="contasfixas"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg></span>Contas Fixas</button>
+        <button class="nav-btn" data-view="cartoes"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg></span>Cartões</button>
         <button class="nav-btn" data-view="investimentos"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>Investimentos</button>
         <button class="nav-btn" data-view="categorias"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>Categorias</button>
         <button class="nav-btn" data-view="config"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Config</button>
@@ -760,14 +777,16 @@ aplicarTema();
         <div class="entry-card expense">
           <h3><span class="entry-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v12"/><path d="M6.5 12.5 12 18l5.5-5.5"/><path d="M5 3h14"/></svg></span>Nova Despesa</h3>
           <div class="form-row">
-            <div class="field"><label>Data</label><input type="date" id="dData"></div>
+            <div class="field"><label>Data</label><input type="date" id="dData" onchange="renderFaturaHint()"></div>
             <div class="field"><label>Categoria</label><select id="dCat" onchange="applyCategoriaAtalho('dCat','dDesc')"><option value="">Selecionar...</option></select></div>
             <div class="field"><label>Descrição</label><input type="text" id="dDesc" placeholder="Ex: Mercado da semana"></div>
             <div class="field"><label>Valor da parcela (R$)</label><input type="text" inputmode="decimal" id="dValor" placeholder="150,00"></div>
-            <div class="field"><label>Conta</label><input type="text" id="dConta" placeholder="Cartão, Pix..."></div>
+            <div class="field"><label>Cartão</label><select id="dCartao" onchange="renderFaturaHint()"></select></div>
+            <div class="field"><label>Conta</label><input type="text" id="dConta" placeholder="Pix, débito..."></div>
             <div class="field" style="max-width:110px;"><label>Parcelas</label><input type="number" step="1" min="1" id="dParcelas" placeholder="1"></div>
             <button class="btn expense-btn" onclick="addDespesa()">+ Despesa</button>
           </div>
+          <div id="dFaturaHint" class="fatura-hint"></div>
         </div>
       </div>
 
@@ -812,6 +831,24 @@ aplicarTema();
           <div>Conta</div><div>Categoria</div><div>Venc.</div><div>Valor</div><div style="text-align:right;">Status</div>
         </div>
         <div id="contasFixasWrap"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-cartoes">
+      <div class="topbar"><h2>Cartões</h2><div class="period" id="periodLabelCar">—</div></div>
+      <div class="card">
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:14px;">Cadastre seus cartões de crédito. Compras marcadas com um cartão entram como despesa no <b style="color:var(--text)">mês em que a fatura vence</b>, e não no mês da compra — que é como o dinheiro sai de verdade. Os cartões valem para a família toda.</div>
+        <div class="form-row">
+          <div class="field"><label>Nome do cartão</label><input type="text" id="carNome" placeholder="Ex: Nubank"></div>
+          <div class="field" style="max-width:120px;"><label>Dia fechamento</label><input type="number" step="1" min="1" max="31" id="carFechamento" placeholder="28"></div>
+          <div class="field" style="max-width:120px;"><label>Dia vencimento</label><input type="number" step="1" min="1" max="31" id="carVencimento" placeholder="5"></div>
+          <div class="field"><label>Limite (R$, opcional)</label><input type="text" inputmode="decimal" id="carLimite" placeholder="5.000,00"></div>
+          <button class="btn" onclick="addCartao()">+ Adicionar</button>
+        </div>
+        <div class="car-row car-header" style="border-bottom:1px solid var(--border); font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">
+          <div>Cartão</div><div>Fecha</div><div>Vence</div><div>Limite</div><div style="text-align:right;">Fatura do mês</div>
+        </div>
+        <div id="cartoesWrap"></div>
       </div>
     </section>
 
@@ -877,7 +914,7 @@ aplicarTema();
       </div>
       <div class="card" style="max-width:420px;">
         <h3>Dados</h3>
-        <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px;">Exportar ou restaurar tudo (lançamentos, orçamento, investimentos e categorias).</div>
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px;">Exportar ou restaurar tudo (lançamentos, orçamento, cartões, investimentos e categorias).</div>
         <button class="btn secondary" onclick="exportarDados()">Exportar JSON</button>
         <button class="btn secondary" onclick="document.getElementById('importFile').click()">Importar JSON</button>
         <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importarDados(event)">
@@ -956,12 +993,15 @@ function defaultDB(){
       {kw:'salário',cat:'Salário'},{kw:'freelance',cat:'Renda Extra'},{kw:'dividendo',cat:'Investimentos'},
       {kw:'aporte',cat:'Investimentos'},{kw:'presente',cat:'Outros'}
     ],
+    cartoes: [
+      {id:1, nome:'Cartão de Crédito', diaFechamento:28, diaVencimento:5, limite:5000}
+    ],
     transacoes: [
       {id:1, data:'2026-07-01', desc:'Salário mensal', valor:5500, conta:'Conta Corrente'},
       {id:2, data:'2026-07-02', desc:'Aluguel', valor:-1500, conta:'Conta Corrente'},
-      {id:3, data:'2026-07-03', desc:'Mercado da semana', valor:-420.5, conta:'Cartão de Crédito'},
-      {id:4, data:'2026-07-05', desc:'Uber para o trabalho', valor:-35, conta:'Cartão de Crédito'},
-      {id:5, data:'2026-07-07', desc:'Netflix', valor:-39.9, conta:'Cartão de Crédito'},
+      {id:3, data:'2026-07-03', desc:'Mercado da semana', valor:-420.5, conta:'', cartaoId:1},
+      {id:4, data:'2026-07-05', desc:'Uber para o trabalho', valor:-35, conta:'', cartaoId:1},
+      {id:5, data:'2026-07-07', desc:'Netflix', valor:-39.9, conta:'', cartaoId:1},
       {id:6, data:'2026-07-10', desc:'Farmácia', valor:-80, conta:'Débito'},
       {id:7, data:'2026-07-12', desc:'Freelance design', valor:800, conta:'Conta Corrente'},
       {id:8, data:'2026-07-15', desc:'Aporte investimento', valor:-500, conta:'Conta Corrente'}
@@ -998,6 +1038,7 @@ function basePadraoFamilia(){
   const base = defaultDB();
   base.transacoes = [];
   base.contasFixas = [];
+  base.cartoes = [];
   base.carteira.precos = {};
   base.carteira.posicoes = {};
   base.carteira.classes.forEach(c=>{ base.carteira.posicoes[c.key] = []; });
@@ -1565,6 +1606,10 @@ function migrateDB(){
   db.config.subtitulo = db.config.subtitulo || 'Controle financeiro pra você e sua família';
   db.config.logoDataUrl = db.config.logoDataUrl || null;
   db.contasFixas = db.contasFixas || [];
+  /* Base anterior aos cartões não tem a lista, e nenhum lançamento dela tem
+     `cartaoId` — que é justamente o que faz tudo que já existe continuar caindo
+     no mês da própria data, sem migração nenhuma. */
+  db.cartoes = db.cartoes || [];
 
   /* Regra sem `tipo` é anterior a esta funcionalidade. Migrar tudo para 'ambos'
      preservaria o comportamento antigo ao pé da letra, mas deixaria os dois
@@ -1641,12 +1686,71 @@ function parseValorBR(str){
   return parseFloat(cleaned.replace(/\./g, '').replace(',', '.'));
 }
 
+/* ---- Cartão de crédito: quando a compra vira despesa de verdade ----
+
+   A compra acontece num dia e o dinheiro sai noutro. Guardamos sempre a data da
+   compra em `t.data` — ela é o fato — e calculamos na hora de somar em que mês o
+   dinheiro sai. Empurrar a data no cadastro, como as parcelas fazem, seria mais
+   simples, mas mentiria sobre quando a compra foi e congelaria o cálculo: mudar
+   o fechamento do cartão depois não corrigiria nada do que já está lançado.
+
+   Consequência prática: lançamento sem `cartaoId` — ou seja, tudo que existia
+   antes desta funcionalidade — cai no mês da própria data, exatamente como caía. */
+
+function diaNoMes(ano, mesIdx, dia){
+  const ultimo = new Date(ano, mesIdx+1, 0).getDate();
+  return Math.min(dia, ultimo);
+}
+function cartaoDe(t){
+  if(!t || !t.cartaoId) return null;
+  return (db.cartoes||[]).find(c=>c.id===t.cartaoId) || null;
+}
+
+/* Qual fatura engoliu uma compra.
+
+   Fecha no primeiro `diaFechamento` igual ou posterior à compra; vence no
+   primeiro `diaVencimento` depois desse fechamento — mesmo mês quando o
+   vencimento cai depois do fechamento (fecha dia 3, vence dia 12), mês seguinte
+   quando não (fecha dia 28, vence dia 10, que é o caso comum).
+
+   A comparação entre os dois dias usa os valores configurados, não os limados
+   pelo tamanho do mês: é a convenção do cartão, não um dia de calendário. */
+function faturaDaCompra(dataStr, cartao){
+  const [y,m,d] = dataStr.split('-').map(Number);
+  let fAno = y, fMes = m-1;
+  if(d > diaNoMes(fAno, fMes, cartao.diaFechamento)){
+    fMes++; if(fMes>11){ fMes=0; fAno++; }
+  }
+  let vAno = fAno, vMes = fMes;
+  if(cartao.diaVencimento <= cartao.diaFechamento){
+    vMes++; if(vMes>11){ vMes=0; vAno++; }
+  }
+  return { ano:vAno, mes:vMes, dia:diaNoMes(vAno, vMes, cartao.diaVencimento) };
+}
+
+/* O mês em que o lançamento pesa no bolso — é por ele que painel, orçamento e
+   gráficos somam. Vale para receita também: estorno de cartão abate a fatura,
+   então segue a mesma data que a compra seguiria. */
+function mesDeCaixa(t){
+  const cartao = cartaoDe(t);
+  if(cartao){
+    const f = faturaDaCompra(t.data, cartao);
+    return { ano:f.ano, mes:f.mes };
+  }
+  const [y,m] = t.data.split('-').map(Number);
+  return { ano:y, mes:m-1 };
+}
+function mesmoMesDeCompra(t){
+  const c = mesDeCaixa(t);
+  const [y,m] = t.data.split('-').map(Number);
+  return c.ano===y && c.mes===(m-1);
+}
+
 function monthlyAgg(year){
   const months = Array.from({length:12}, ()=>({receita:0, despesa:0, porCategoria:{}}));
   db.transacoes.forEach(t=>{
-    const [y,m] = t.data.split('-').map(Number);
+    const {ano:y, mes:idx} = mesDeCaixa(t);
     if(y!==year) return;
-    const idx = m-1;
     if(t.valor>=0){ months[idx].receita += t.valor; }
     else{
       months[idx].despesa += -t.valor;
@@ -1656,15 +1760,24 @@ function monthlyAgg(year){
   });
   return months;
 }
+/* Os dois anos de cada lançamento: o da compra e o em que ela pesa. Compra de
+   dezembro no cartão vence em janeiro — sem o ano de caixa aqui, a aba do ano
+   seguinte não apareceria e a despesa ficaria invisível. */
+function anosDoLancamento(t){
+  const compra = Number(t.data.split('-')[0]);
+  const caixa = mesDeCaixa(t).ano;
+  return compra===caixa ? [compra] : [compra, caixa];
+}
 function yearsWithData(){
-  const ys = new Set(db.transacoes.map(t=>Number(t.data.split('-')[0])));
+  const ys = new Set();
+  db.transacoes.forEach(t=> anosDoLancamento(t).forEach(y=>ys.add(y)));
   ys.add(new Date().getFullYear());
   ys.add(2026);
   (db.anosExtras||[]).forEach(y=>ys.add(y));
   return Array.from(ys).sort((a,b)=>a-b);
 }
 function yearHasTransactions(y){
-  return db.transacoes.some(t=>Number(t.data.split('-')[0])===y);
+  return db.transacoes.some(t=> anosDoLancamento(t).includes(y));
 }
 
 const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -1747,6 +1860,7 @@ function renderPeriodUI(){
   const pl = document.getElementById('periodLabel'); if(pl) pl.textContent = label;
   const pl2 = document.getElementById('periodLabelOrc'); if(pl2) pl2.textContent = label;
   const pl3 = document.getElementById('periodLabelCF'); if(pl3) pl3.textContent = label;
+  const pl4 = document.getElementById('periodLabelCar'); if(pl4) pl4.textContent = label;
 }
 
 function renderView(){
@@ -1754,6 +1868,7 @@ function renderView(){
   else if(state.view==='lancamentos') renderLancamentos();
   else if(state.view==='orcamento') renderOrcamento();
   else if(state.view==='contasfixas') renderContasFixas();
+  else if(state.view==='cartoes') renderCartoes();
   else if(state.view==='investimentos') renderInvestimentos();
   else if(state.view==='categorias') renderCategorias();
   else if(state.view==='config') renderConfig();
@@ -1988,7 +2103,13 @@ function rowHtml(t){
             <option value="receita" ${t.valor>=0?'selected':''}>Receita</option>
             <option value="despesa" ${t.valor<0?'selected':''}>Despesa</option>
           </select></td>
-      <td><input type="text" class="orc-input" id="editConta_${t.id}" value="${escAttr(t.conta)}"></td>
+      <td>
+        <select class="orc-input" id="editCartao_${t.id}" style="margin-bottom:4px;">
+          <option value="">Nenhum (à vista)</option>
+          ${(db.cartoes||[]).map(c=>`<option value="${c.id}" ${c.id===t.cartaoId?'selected':''}>${escAttr(c.nome)}</option>`).join('')}
+        </select>
+        <input type="text" class="orc-input" id="editConta_${t.id}" value="${escAttr(t.conta)}" placeholder="Pix, débito...">
+      </td>
       <td><input type="text" inputmode="decimal" class="orc-input" id="editValor_${t.id}" value="${formatValorInput(Math.abs(t.valor))}" style="text-align:right;"></td>
       <td style="white-space:nowrap;">
         <button class="btn danger-ghost" style="color:var(--green);" onclick="saveEditTransacao(${t.id})" title="Salvar">✓</button>
@@ -1996,12 +2117,19 @@ function rowHtml(t){
       </td>
     </tr>`;
   }
+  /* A data mostrada é sempre a da compra. Quando ela cai em outra fatura, o mês
+     em que o valor de fato conta vai logo abaixo — sem isso, a lista diz julho e
+     o painel diz agosto, e quem lê conclui que um dos dois está errado. */
+  const caixa = mesDeCaixa(t);
+  const cartao = cartaoDe(t);
+  const avisoFatura = (cartao && !mesmoMesDeCompra(t))
+    ? `<span class="lanc-fatura">fatura ${labelMesAno(caixa.ano, caixa.mes)}</span>` : '';
   return `<tr>
-    <td class="num">${d}/${m}/${y}</td>
+    <td class="num">${d}/${m}/${y}${avisoFatura}</td>
     <td>${t.desc}</td>
     <td><span class="badge-cat"><span class="sw" style="background:${colorFor(cat)}"></span>${cat}</span></td>
     <td><span class="pill ${tipo==='Receita'?'receita':'despesa'}">${tipo}</span></td>
-    <td>${t.conta||'—'}</td>
+    <td>${cartao ? `<span class="badge-cat"><span class="sw" style="background:${colorFor(cartao.nome)}"></span>${cartao.nome}</span>` : (t.conta||'—')}</td>
     <td style="text-align:right;" class="num">${fmt(t.valor)}</td>
     <td style="white-space:nowrap;">
       <button class="btn danger-ghost" onclick="startEditTransacao(${t.id})" title="Editar">✎</button>
@@ -2024,7 +2152,7 @@ function groupSummaryHtml(group){
     </td>
     <td><span class="badge-cat"><span class="sw" style="background:${colorFor(cat)}"></span>${cat}</span></td>
     <td><span class="pill ${tipo==='Receita'?'receita':'despesa'}">${tipo}</span></td>
-    <td>${first.conta||'—'}</td>
+    <td>${cartaoDe(first) ? `<span class="badge-cat"><span class="sw" style="background:${colorFor(cartaoDe(first).nome)}"></span>${cartaoDe(first).nome}</span>` : (first.conta||'—')}</td>
     <td style="text-align:right;" class="num">${fmt(sumValor)}</td>
     <td style="white-space:nowrap;">
       <button class="btn danger-ghost" onclick="deleteGrupoTransacoes('${group.key.replace(/'/g,"\\'")}')" title="Excluir todas as parcelas">🗑</button>
@@ -2065,6 +2193,7 @@ async function deleteGrupoTransacoes(key){
 
 function renderLancamentos(){
   populateCategoriaSelects();
+  populateCartaoSelects();
   const wrap = document.getElementById('lancTableWrap');
   let rows = [...db.transacoes].sort((a,b)=> b.data.localeCompare(a.data));
   if(lancFilter==='receita') rows = rows.filter(t=>t.valor>=0);
@@ -2107,7 +2236,10 @@ function saveEditTransacao(id){
   if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ avisar('Preencha data, descrição e um valor válido.', { tipo:'erro' }); return; }
   const t = db.transacoes.find(x=>x.id===id);
   if(!t) return;
+  const cartaoIdRaw = parseInt(document.getElementById('editCartao_'+id).value, 10);
+  const cartaoId = (db.cartoes||[]).some(c=>c.id===cartaoIdRaw) ? cartaoIdRaw : null;
   t.data = data; t.desc = desc; t.conta = conta;
+  if(cartaoId) t.cartaoId = cartaoId; else delete t.cartaoId;
   t.valor = tipo==='despesa' ? -Math.abs(valorAbs) : Math.abs(valorAbs);
   saveDB();
   editingLancId = null;
@@ -2140,13 +2272,20 @@ function addDespesa(){
   const desc = document.getElementById('dDesc').value.trim();
   const valorAbs = parseValorBR(document.getElementById('dValor').value);
   const conta = document.getElementById('dConta').value.trim();
+  const cartaoIdRaw = parseInt(document.getElementById('dCartao').value, 10);
+  const cartaoId = (db.cartoes||[]).some(c=>c.id===cartaoIdRaw) ? cartaoIdRaw : null;
   const parcelasRaw = parseInt(document.getElementById('dParcelas').value, 10);
   const parcelas = (parcelasRaw && parcelasRaw>1) ? parcelasRaw : 1;
   if(!data || !desc || isNaN(valorAbs) || valorAbs<0){ avisar('Preencha data, descrição e um valor válido.', { tipo:'erro' }); return; }
   for(let i=0; i<parcelas; i++){
+    /* Parcelamento no cartão compõe naturalmente: a parcela i é uma compra um
+       mês depois da anterior, e cada uma cai na fatura que engoliria aquela
+       data. Nada de deslocamento em cima de deslocamento. */
     const dataParcela = i===0 ? data : addMonthsClamped(data, i);
     const descParcela = parcelas>1 ? `${desc} (${i+1}/${parcelas})` : desc;
-    db.transacoes.push({ id:nextId(db.transacoes), data:dataParcela, desc:descParcela, valor:-Math.abs(valorAbs), conta });
+    const t = { id:nextId(db.transacoes), data:dataParcela, desc:descParcela, valor:-Math.abs(valorAbs), conta };
+    if(cartaoId) t.cartaoId = cartaoId;
+    db.transacoes.push(t);
   }
   saveDB();
   document.getElementById('dDesc').value=''; document.getElementById('dValor').value=''; document.getElementById('dConta').value=''; document.getElementById('dParcelas').value='';
@@ -2180,8 +2319,8 @@ function budgetGasto(year, month, cat){
   const catLower = cat.toLowerCase();
   let total = 0;
   db.transacoes.forEach(t=>{
-    const [y,m] = t.data.split('-').map(Number);
-    if(y!==year || (m-1)!==month || t.valor>=0) return;
+    const {ano:y, mes:m} = mesDeCaixa(t);
+    if(y!==year || m!==month || t.valor>=0) return;
     const mesmaCategoria = categorize(t.desc, 'despesa')===cat;
     const contaMenciona = (t.conta||'').toLowerCase().includes(catLower);
     if(mesmaCategoria || contaMenciona) total += -t.valor;
@@ -2422,6 +2561,153 @@ async function desmarcarContaFixaPaga(id){
   renderContasFixas();
   buildSidebarPeriod();
   if(state.view==='painel') renderPainel();
+}
+
+/* ---- Cartões ---- */
+
+function cartaoNome(id){
+  const c = (db.cartoes||[]).find(x=>x.id===id);
+  return c ? c.nome : '';
+}
+/* Soma da fatura de um cartão que vence no mês dado. Receita lançada no cartão
+   (estorno) entra abatendo, que é o que ela faz na fatura de verdade. */
+function faturaTotal(cartao, year, month){
+  let total = 0;
+  db.transacoes.forEach(t=>{
+    if(t.cartaoId!==cartao.id) return;
+    const {ano, mes} = mesDeCaixa(t);
+    if(ano!==year || mes!==month) return;
+    total += -t.valor;
+  });
+  return total;
+}
+function labelMesAno(ano, mes){ return `${MONTHS[mes].toLowerCase()}/${String(ano).slice(2)}`; }
+
+/* O recado embaixo do formulário de despesa: enquanto a pessoa escolhe cartão e
+   data, diz em qual fatura aquilo vai cair. É a resposta para a estranheza de
+   lançar em julho e o valor aparecer em agosto — melhor explicar antes de salvar
+   do que a pessoa descobrir sozinha no painel. */
+function renderFaturaHint(){
+  const el = document.getElementById('dFaturaHint');
+  if(!el) return;
+  const sel = document.getElementById('dCartao');
+  const dataEl = document.getElementById('dData');
+  const id = sel ? parseInt(sel.value,10) : NaN;
+  const cartao = (db.cartoes||[]).find(c=>c.id===id);
+  if(!cartao || !dataEl || !dataEl.value){ el.innerHTML = ''; return; }
+  const f = faturaDaCompra(dataEl.value, cartao);
+  el.innerHTML = `Entra na fatura de <b>${MONTHS[f.mes]}/${f.ano}</b>, que vence em ${String(f.dia).padStart(2,'0')}/${String(f.mes+1).padStart(2,'0')} — é nesse mês que vira despesa no painel.`;
+}
+function populateCartaoSelects(){
+  const sel = document.getElementById('dCartao');
+  if(!sel) return;
+  const anterior = sel.value;
+  const cartoes = db.cartoes||[];
+  sel.innerHTML = '<option value="">Nenhum (à vista)</option>' +
+    cartoes.map(c=>`<option value="${c.id}">${escAttr(c.nome)}</option>`).join('');
+  if(anterior && cartoes.some(c=>String(c.id)===anterior)) sel.value = anterior;
+  renderFaturaHint();
+}
+
+let editingCartaoId = null;
+function renderCartoes(){
+  const wrap = document.getElementById('cartoesWrap');
+  if(!wrap) return;
+  if(!db.cartoes.length){
+    wrap.innerHTML = '<div class="empty">Nenhum cartão cadastrado. Enquanto não houver, toda despesa continua caindo no mês da própria data.</div>';
+    return;
+  }
+  wrap.innerHTML = db.cartoes.map(c=>{
+    if(c.id===editingCartaoId){
+      return `<div class="car-row">
+        <div><input type="text" class="orc-input" id="editCarNome_${c.id}" value="${escAttr(c.nome)}"></div>
+        <div><input type="number" step="1" min="1" max="31" class="orc-input" id="editCarFech_${c.id}" value="${c.diaFechamento}"></div>
+        <div><input type="number" step="1" min="1" max="31" class="orc-input" id="editCarVenc_${c.id}" value="${c.diaVencimento}"></div>
+        <div><input type="text" inputmode="decimal" class="orc-input" id="editCarLimite_${c.id}" value="${c.limite ? formatValorInput(c.limite) : ''}"></div>
+        <div class="status">
+          <button class="btn danger-ghost" style="color:var(--green);" onclick="saveEditCartao(${c.id})" title="Salvar">✓</button>
+          <button class="btn danger-ghost" onclick="cancelEditCartao()" title="Cancelar">✕</button>
+        </div>
+      </div>`;
+    }
+    const total = faturaTotal(c, state.year, state.month);
+    const pctLimite = c.limite ? Math.round(total/c.limite*100) : 0;
+    const estourou = c.limite && total > c.limite;
+    return `<div class="car-row">
+      <div><span class="badge-cat"><span class="sw" style="background:${colorFor(c.nome)}"></span>${c.nome}</span></div>
+      <div><span class="mobile-label">Fecha</span>dia ${c.diaFechamento}</div>
+      <div><span class="mobile-label">Vence</span>dia ${c.diaVencimento}</div>
+      <div><span class="mobile-label">Limite</span>${c.limite ? `<span class="num">${fmt(c.limite)}</span>` : '—'}</div>
+      <div class="status">
+        <span class="mobile-label">Fatura do mês</span>
+        <span class="num" style="color:${estourou?'var(--coral)':'var(--text)'}">${fmt(total)}</span>
+        ${c.limite ? `<span style="color:var(--muted); font-weight:400; font-size:11px;">(${pctLimite}% do limite)</span>` : ''}
+        <button class="btn danger-ghost" onclick="startEditCartao(${c.id})" title="Editar">✎</button>
+        <button class="btn danger-ghost" onclick="deleteCartao(${c.id})" title="Excluir cartão">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function lerDiasCartao(fechamentoRaw, vencimentoRaw){
+  const diaFechamento = parseInt(fechamentoRaw, 10);
+  const diaVencimento = parseInt(vencimentoRaw, 10);
+  if(!diaFechamento || diaFechamento<1 || diaFechamento>31 || !diaVencimento || diaVencimento<1 || diaVencimento>31){
+    avisar('Informe dias de fechamento e vencimento válidos (1-31).', { tipo:'erro' });
+    return null;
+  }
+  return { diaFechamento, diaVencimento };
+}
+function addCartao(){
+  const nome = document.getElementById('carNome').value.trim();
+  if(!nome){ avisar('Dê um nome ao cartão.', { tipo:'erro' }); return; }
+  const dias = lerDiasCartao(document.getElementById('carFechamento').value, document.getElementById('carVencimento').value);
+  if(!dias) return;
+  const limiteRaw = document.getElementById('carLimite').value.trim();
+  const limite = limiteRaw ? parseValorBR(limiteRaw) : 0;
+  if(limiteRaw && (isNaN(limite) || limite<0)){ avisar('Limite inválido.', { tipo:'erro' }); return; }
+  db.cartoes.push({ id:nextId(db.cartoes), nome, diaFechamento:dias.diaFechamento, diaVencimento:dias.diaVencimento, limite });
+  saveDB();
+  document.getElementById('carNome').value=''; document.getElementById('carFechamento').value='';
+  document.getElementById('carVencimento').value=''; document.getElementById('carLimite').value='';
+  renderCartoes(); populateCartaoSelects();
+}
+function startEditCartao(id){ editingCartaoId = id; renderCartoes(); }
+function cancelEditCartao(){ editingCartaoId = null; renderCartoes(); }
+function saveEditCartao(id){
+  const nome = document.getElementById('editCarNome_'+id).value.trim();
+  if(!nome){ avisar('Dê um nome ao cartão.', { tipo:'erro' }); return; }
+  const dias = lerDiasCartao(document.getElementById('editCarFech_'+id).value, document.getElementById('editCarVenc_'+id).value);
+  if(!dias) return;
+  const limiteRaw = document.getElementById('editCarLimite_'+id).value.trim();
+  const limite = limiteRaw ? parseValorBR(limiteRaw) : 0;
+  if(limiteRaw && (isNaN(limite) || limite<0)){ avisar('Limite inválido.', { tipo:'erro' }); return; }
+  const c = db.cartoes.find(x=>x.id===id);
+  if(!c) return;
+  c.nome = nome; c.diaFechamento = dias.diaFechamento; c.diaVencimento = dias.diaVencimento; c.limite = limite;
+  saveDB();
+  editingCartaoId = null;
+  /* Mudar fechamento/vencimento reposiciona lançamento já salvo — é o ponto de
+     guardar a data da compra —, então painel e listas precisam ser refeitos. */
+  renderCartoes(); populateCartaoSelects(); buildSidebarPeriod();
+}
+/* Excluir cartão desliga os lançamentos dele, que voltam a contar no mês da
+   própria data. Apagar os lançamentos junto seria apagar compras de verdade por
+   causa de um cadastro — e a conta do mês mudaria sem ninguém pedir. */
+async function deleteCartao(id){
+  const c = db.cartoes.find(x=>x.id===id);
+  if(!c) return;
+  const vinculados = db.transacoes.filter(t=>t.cartaoId===id);
+  const detalhe = vinculados.length
+    ? `${vinculados.length} lançamento${vinculados.length>1?'s':''} usa${vinculados.length>1?'m':''} este cartão. Eles não serão apagados, mas voltam a contar no mês da data da compra.`
+    : 'Essa ação não pode ser desfeita.';
+  const ok = await confirmar(`Excluir o cartão "${c.nome}"?`, {
+    titulo: 'Excluir cartão', detalhe, confirmar: 'Excluir', perigo: true
+  });
+  if(!ok) return;
+  vinculados.forEach(t=>{ delete t.cartaoId; });
+  db.cartoes = db.cartoes.filter(x=>x.id!==id);
+  saveDB();
+  renderCartoes(); populateCartaoSelects(); buildSidebarPeriod();
 }
 
 const CARTEIRA_PRESETS = {
