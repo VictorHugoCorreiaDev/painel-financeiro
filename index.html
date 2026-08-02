@@ -1806,11 +1806,6 @@ function mesDeCaixa(t){
   const [y,m] = t.data.split('-').map(Number);
   return { ano:y, mes:m-1 };
 }
-function mesmoMesDeCompra(t){
-  const c = mesDeCaixa(t);
-  const [y,m] = t.data.split('-').map(Number);
-  return c.ano===y && c.mes===(m-1);
-}
 
 function monthlyAgg(year){
   const months = Array.from({length:12}, ()=>({receita:0, despesa:0, porCategoria:{}}));
@@ -2183,12 +2178,18 @@ function rowHtml(t){
       </td>
     </tr>`;
   }
-  /* A data mostrada é sempre a da compra. Quando ela cai em outra fatura, o mês
-     em que o valor de fato conta vai logo abaixo — sem isso, a lista diz julho e
-     o painel diz agosto, e quem lê conclui que um dos dois está errado. */
+  /* A data mostrada é sempre a da compra; embaixo dela vai o mês em que o valor
+     de fato conta — sem isso, a lista diz julho e o painel diz agosto, e quem lê
+     conclui que um dos dois está errado.
+
+     O rótulo aparece em TODA compra com cartão, mesmo quando a fatura cai no
+     próprio mês da compra. Antes só aparecia quando os meses diferiam, para não
+     poluir, e o resultado foi pior: numa lista com quatro compras do mesmo
+     cartão, uma marcada e três em branco, não dá para saber se o branco quer
+     dizer "mesmo mês" ou "o cartão não pegou". Silêncio aqui é ambíguo. */
   const caixa = mesDeCaixa(t);
   const cartao = cartaoDe(t);
-  const avisoFatura = (cartao && !mesmoMesDeCompra(t))
+  const avisoFatura = cartao
     ? `<span class="lanc-fatura">fatura ${labelMesAno(caixa.ano, caixa.mes)}</span>` : '';
   return `<tr>
     <td class="num">${d}/${m}/${y}${avisoFatura}</td>
@@ -2210,8 +2211,20 @@ function groupSummaryHtml(group){
   const tipo = sumValor>=0 ? 'Receita' : 'Despesa';
   const cat = categorize(group.baseDesc, sumValor>=0?'receita':'despesa');
   const expanded = expandedGroupKeys.has(group.key);
+  /* Recolhido, o grupo não tem data própria — mas tem faturas, e são justamente
+     as que a pessoa quer saber ao parcelar: da primeira à última. Só o mês de
+     uma parcela qualquer seria enganoso, então mostramos o intervalo. */
+  const cartaoGrupo = cartaoDe(first);
+  let faturaGrupo = '';
+  if(cartaoGrupo){
+    const meses = items.map(mesDeCaixa).sort((a,b)=> (a.ano-b.ano) || (a.mes-b.mes));
+    const ini = meses[0], fim = meses[meses.length-1];
+    faturaGrupo = (ini.ano===fim.ano && ini.mes===fim.mes)
+      ? `<span class="lanc-fatura">fatura ${labelMesAno(ini.ano, ini.mes)}</span>`
+      : `<span class="lanc-fatura">faturas ${labelMesAno(ini.ano, ini.mes)} → ${labelMesAno(fim.ano, fim.mes)}</span>`;
+  }
   return `<tr style="background:var(--panel-2);">
-    <td class="num">—</td>
+    <td class="num">—${faturaGrupo}</td>
     <td>
       <button class="btn danger-ghost" style="padding:2px 6px; margin-right:4px;" onclick="toggleGroupExpand('${group.key.replace(/'/g,"\\'")}')" title="${expanded?'Recolher':'Expandir'}">${expanded?'▾':'▸'}</button>
       ${group.baseDesc}<span style="color:var(--muted); font-size:11.5px;"> — ${items.length}x</span>
