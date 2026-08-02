@@ -740,7 +740,7 @@ aplicarTema();
         <button class="btn" onclick="confirmAddYear()">OK</button>
       </div>
       <div class="months" id="months"></div>
-      <div style="font-size:10px; color:var(--muted); margin-top:8px;">Usado no Painel e no Orçamento</div>
+      <div style="font-size:10px; color:var(--muted); margin-top:8px;">Vale para todas as telas</div>
     </div>
 
     <!-- Este rodapé dizia "Nada é enviado a servidores externos", frase que era
@@ -814,7 +814,7 @@ aplicarTema();
     </section>
 
     <section class="view" id="view-lancamentos">
-      <div class="topbar"><h2>Lançamentos</h2><div class="period">Categorização automática por palavra-chave</div></div>
+      <div class="topbar"><h2>Lançamentos</h2><div class="period" id="periodLabelLanc">—</div></div>
 
       <div class="split-forms">
         <div class="entry-card income">
@@ -1957,6 +1957,7 @@ function renderPeriodUI(){
   const pl2 = document.getElementById('periodLabelOrc'); if(pl2) pl2.textContent = label;
   const pl3 = document.getElementById('periodLabelCF'); if(pl3) pl3.textContent = label;
   const pl4 = document.getElementById('periodLabelCar'); if(pl4) pl4.textContent = label;
+  const pl5 = document.getElementById('periodLabelLanc'); if(pl5) pl5.textContent = label;
 }
 
 function renderView(){
@@ -2141,6 +2142,9 @@ const PARCELA_RE = /^(.*) \((\d+)\/(\d+)\)$/;
    Paginar pelas transações cruas partiria um grupo no meio da página. */
 const LANC_POR_PAGINA = 20;
 let lancPage = 0;
+/* Qual mês a lista desenhou por último. Serve para recomeçar na página 1 quando
+   o período muda — a página 3 do mês anterior não quer dizer nada no mês novo. */
+let lancPeriodoDesenhado = null;
 document.querySelectorAll('#lancFilter .filter-tab').forEach(b=>{
   b.onclick = ()=>{ lancFilter=b.dataset.f; editingLancId=null; lancPage=0; document.querySelectorAll('#lancFilter .filter-tab').forEach(x=>x.classList.toggle('active', x===b)); renderLancamentos(); };
 });
@@ -2252,9 +2256,22 @@ function rowHtml(t){
     <td style="text-align:right;" class="num">${fmt(t.valor)}</td>
     <td style="white-space:nowrap;">
       <button class="btn danger-ghost" onclick="startEditTransacao(${t.id})" title="Editar">✎</button>
+      ${btnExcluirGrupo(t)}
       <button class="btn danger-ghost" onclick="deleteTransacao(${t.id})" title="Excluir">×</button>
     </td>
   </tr>`;
+}
+/* O 🗑 "excluir todas as parcelas" morava só na linha-resumo do grupo, que quase
+   não aparece desde que a lista passou a mostrar um mês por vez: as parcelas se
+   espalham um mês cada, e o grupo com um item só desenha como linha comum. Sem
+   isto, apagar um parcelado em 12x viraria doze exclusões em doze meses. Só
+   aparece quando existe irmã em outro mês — parcela órfã não ganha botão. */
+function btnExcluirGrupo(t){
+  const m = t.desc.match(PARCELA_RE);
+  if(!m) return '';
+  const key = m[1] + '||' + m[3] + '||' + (t.conta||'');
+  if(transacoesDoGrupo(key).length<2) return '';
+  return `<button class="btn danger-ghost" onclick="deleteGrupoTransacoes('${escAttr(key).replace(/'/g,"\\'")}')" title="Excluir todas as parcelas">🗑</button>`;
 }
 function groupSummaryHtml(group){
   const items = group.items;
@@ -2325,7 +2342,15 @@ async function deleteGrupoTransacoes(key){
 /* A lista já mostrada, com as parcelas agrupadas. Separado de renderLancamentos
    porque a paginação precisa contar as mesmas entradas que a tela desenha. */
 function itensDaLista(){
-  let rows = [...db.transacoes].sort((a,b)=> b.data.localeCompare(a.data));
+  /* A lista mostra só o mês selecionado na barra lateral, e o corte é pela DATA
+     do lançamento — não pelo mês da fatura, como fazem painel e orçamento. É a
+     coluna Data que a pessoa lê aqui: compra de julho aparecendo no mês de
+     agosto pareceria erro. Quando o dinheiro sai continua dito pelo rótulo
+     "fatura ..." na própria linha, que já existia. */
+  let rows = db.transacoes.filter(t=>{
+    const [y,m] = t.data.split('-').map(Number);
+    return y===state.year && (m-1)===state.month;
+  }).sort((a,b)=> b.data.localeCompare(a.data));
   if(lancFilter==='receita') rows = rows.filter(t=>t.valor>=0);
   if(lancFilter==='despesa') rows = rows.filter(t=>t.valor<0);
   if(lancFilter==='parcelados') rows = rows.filter(t=>PARCELA_RE.test(t.desc));
@@ -2342,10 +2367,21 @@ function itensDaLista(){
   return { items, groups };
 }
 
-/* Depois de lançar, a lista pula para a página onde o novo item caiu. Sem isso,
-   quem lança uma data antiga com a lista paginada não vê nada acontecer e
-   conclui que o botão falhou. */
+/* Depois de lançar, a lista pula para o MÊS e a página onde o novo item caiu.
+   Sem isso, quem lança uma data antiga com a lista paginada não vê nada
+   acontecer e conclui que o botão falhou — e agora que a lista mostra um mês
+   por vez, lançar uma data de novembro olhando agosto faria o item sumir de
+   vez. O mês selecionado muda junto (a barra lateral mostra qual), porque é a
+   única forma de a pessoa ver o que acabou de criar. */
 function irParaPaginaDoLancamento(id){
+  const nova = db.transacoes.find(t=>t.id===id);
+  if(nova){
+    const [y,m] = nova.data.split('-').map(Number);
+    state.year = y; state.month = m-1;
+    /* marcar o período como já desenhado evita que renderLancamentos entenda a
+       troca de mês como navegação do usuário e jogue a página de volta pra 1. */
+    lancPeriodoDesenhado = state.year + '-' + state.month;
+  }
   const { items, groups } = itensDaLista();
   const idx = items.findIndex(it => it.type==='single'
     ? it.t.id===id
@@ -2393,10 +2429,19 @@ function renderLancamentos(){
   populateCategoriaSelects();
   populateCartaoSelects();
   const wrap = document.getElementById('lancTableWrap');
+
+  const periodo = state.year + '-' + state.month;
+  if(periodo !== lancPeriodoDesenhado){
+    lancPeriodoDesenhado = periodo;
+    lancPage = 0;
+    editingLancId = null;
+  }
+
   const { items, groups } = itensDaLista();
+  const mesAno = `${MONTHS[state.month].toUpperCase()} ${state.year}`;
   if(!items.length){
     lancPage = 0;
-    wrap.innerHTML = '<div class="empty">Nenhum lançamento neste filtro.</div>';
+    wrap.innerHTML = `<div class="empty">Nenhum lançamento em ${mesAno}${lancFilter==='todos'?'':' neste filtro'}.</div>`;
     return;
   }
 
