@@ -122,6 +122,11 @@
   .topbar{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px; }
   .topbar h2{ font-size:20px; font-weight:700; }
   .topbar .period{ color:var(--muted); font-size:13px; font-family:'IBM Plex Mono',monospace; }
+  /* Lançamentos precisa dizer duas coisas no canto: o mês que está sendo
+     mostrado (igual às outras telas) e a dica da categorização, que é fixa.
+     Empilhadas, a dica não disputa espaço com o mês em tela estreita. */
+  .topbar .period-stack{ display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+  .topbar .period-dica{ font-size:11px; opacity:.8; }
 
   .view{ display:none; }
   .view.active{ display:block; }
@@ -559,6 +564,8 @@
     /* Padroniza cabeçalhos de página: título e período/descrição empilhados */
     .topbar{ flex-direction:column; align-items:flex-start; gap:3px; margin-bottom:18px; }
     .topbar .period{ font-size:11.5px; }
+    .topbar .period-stack{ align-items:flex-start; }
+    .topbar .period-dica{ font-size:10.5px; }
 
     /* Formulários em coluna única, mais espaçados */
     .form-row{ flex-direction:column; align-items:stretch; gap:12px; }
@@ -814,7 +821,12 @@ aplicarTema();
     </section>
 
     <section class="view" id="view-lancamentos">
-      <div class="topbar"><h2>Lançamentos</h2><div class="period" id="periodLabelLanc">—</div></div>
+      <div class="topbar"><h2>Lançamentos</h2>
+        <div class="period period-stack">
+          <span id="periodLabelLanc">—</span>
+          <span class="period-dica">Categorização automática por palavra-chave</span>
+        </div>
+      </div>
 
       <div class="split-forms">
         <div class="entry-card income">
