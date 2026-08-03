@@ -961,7 +961,12 @@ aplicarTema();
           <div class="field"><label>Nome da conta</label><input type="text" id="cfNome" placeholder="Ex: Aluguel"></div>
           <div class="field"><label>Categoria</label><select id="cfCategoria"><option value="">Categoria...</option></select></div>
           <div class="field"><label>Valor esperado (R$)</label><input type="text" inputmode="decimal" id="cfValor" placeholder="1.500,00"></div>
-          <div class="field" style="max-width:110px;"><label>Dia venc.</label><input type="number" step="1" min="1" max="31" id="cfDia" placeholder="5"></div>
+          <!-- 120px, não 110: o input tem min-width:120px e o .field tem
+               overflow:hidden, então um teto menor que isso corta a borda
+               direita e a caixinha aparece sem fechar. É a mesma medida dos
+               campos de dia em Cartões. No celular não dava porque lá o
+               min-width dos inputs vira 0. -->
+          <div class="field" style="max-width:120px;"><label>Dia venc.</label><input type="number" step="1" min="1" max="31" id="cfDia" placeholder="5"></div>
           <div class="field"><label>Pago no cartão</label><select id="cfCartao"></select></div>
           <button class="btn" onclick="addContaFixa()">+ Adicionar</button>
         </div>
