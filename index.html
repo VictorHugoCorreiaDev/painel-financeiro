@@ -554,6 +554,43 @@
   .membros-lista.aviso{ font-size:12.5px; color:var(--muted); }
   .membro-row .btn{ margin:0; padding:4px 10px; font-size:11.5px; }
 
+  /* AJUDA — é a única tela feita de prosa, e o app nunca precisou estilizar
+     p/ul/li porque nenhuma outra tem texto corrido. Tudo fica sob .ajuda para
+     não vazar regra de parágrafo para as tabelas das outras telas. */
+  .ajuda{ max-width:820px; }
+  .ajuda p{ margin:0 0 10px; font-size:13.5px; line-height:1.65; }
+  .ajuda p:last-child{ margin-bottom:0; }
+  .ajuda ul{ margin:0 0 10px; padding-left:19px; }
+  .ajuda ul:last-child{ margin-bottom:0; }
+  .ajuda li{ font-size:13.5px; line-height:1.6; margin-bottom:6px; }
+  .ajuda li:last-child{ margin-bottom:0; }
+  .ajuda .card{ scroll-margin-top:18px; }
+  .ajuda code{ font-family:'IBM Plex Mono',monospace; font-size:12.5px;
+    background:var(--panel-2); border:1px solid var(--border); border-radius:5px; padding:1px 6px; }
+
+  .ajuda-passos{ counter-reset:passo; list-style:none; padding:0; margin:0; }
+  .ajuda-passos li{ counter-increment:passo; position:relative; padding-left:34px; margin-bottom:13px; }
+  .ajuda-passos li::before{ content:counter(passo); position:absolute; left:0; top:0;
+    width:23px; height:23px; border-radius:50%; background:var(--panel-3);
+    color:var(--amber-texto); border:1px solid var(--amber);
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; }
+
+  /* A camada de baixo: quem já entende de finanças passa direto, quem não
+     entende abre. Fechado por padrão para o texto principal não virar aula. */
+  .conceito{ margin:12px 0 0; border:1px solid var(--border); border-radius:10px; background:var(--panel-2); }
+  .conceito + .conceito{ margin-top:8px; }
+  .conceito > summary{ cursor:pointer; list-style:none; padding:9px 13px; font-size:12.5px;
+    font-weight:600; color:var(--muted); display:flex; align-items:center; gap:9px; }
+  .conceito > summary::-webkit-details-marker{ display:none; }
+  .conceito > summary::before{ content:'?'; flex:none; width:17px; height:17px; border-radius:50%;
+    border:1px solid currentColor; font-size:10.5px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; }
+  .conceito > summary:hover{ color:var(--text); }
+  .conceito[open] > summary{ color:var(--text); border-bottom:1px solid var(--border); }
+  .conceito .corpo{ padding:12px 13px 13px; }
+  .conceito .corpo p, .conceito .corpo li{ font-size:12.5px; color:var(--muted); }
+
   .filter-tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:18px 0 12px; }
   .filter-tab{ padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:12.5px; font-weight:600; }
   .filter-tab:hover{ color:var(--text); }
@@ -587,6 +624,9 @@
     .sidebar-overlay.open{ opacity:1; pointer-events:auto; }
 
     .main{ padding:16px 14px calc(40px + env(safe-area-inset-bottom)); margin:0; max-width:none; width:100%; }
+    /* a barra do topo é sticky no celular: sem esta folga o índice da Ajuda
+       levaria o título do card para debaixo dela */
+    .ajuda .card{ scroll-margin-top:calc(74px + env(safe-area-inset-top)); }
     .kpis, .row-a, .row-b{ grid-template-columns:1fr; }
     .split-forms{ grid-template-columns:minmax(0,1fr); }
     .rings{ grid-template-columns:repeat(3,1fr); }
@@ -766,6 +806,7 @@ aplicarTema();
         <button class="nav-btn" data-view="investimentos"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>Investimentos</button>
         <button class="nav-btn" data-view="categorias"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>Categorias</button>
         <button class="nav-btn" data-view="config"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Config</button>
+        <button class="nav-btn" data-view="ajuda"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.4 9.3a2.7 2.7 0 0 1 5.2.9c0 1.8-2.6 2.2-2.6 3.8"/><line x1="12" y1="17.4" x2="12.01" y2="17.4"/></svg></span>Ajuda</button>
       </div>
     </div>
 
@@ -1074,6 +1115,158 @@ aplicarTema();
             <div id="syncStatus" style="margin-top:10px; font-size:12px; font-weight:600;"></div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Tela de ajuda. É conteúdo estático de propósito: renderView() não tem
+         ramo para 'ajuda' porque não há nada que dependa de dados, mês ou ano.
+         Se uma tela mudar de comportamento, o texto correspondente aqui muda
+         junto — é a única parte do app que mente em silêncio quando envelhece. -->
+    <section class="view ajuda" id="view-ajuda">
+      <div class="topbar"><h2>Como usar o Kofre+</h2><div class="period">Guia de todas as telas</div></div>
+
+      <div class="card">
+        <div class="card-desc">Pule direto para o que você procura:</div>
+        <div class="filter-tabs" style="margin:0;">
+          <button class="filter-tab" onclick="irParaAjuda('aj-passos')">Primeiros passos</button>
+          <button class="filter-tab" onclick="irParaAjuda('aj-periodo')">Ano e mês</button>
+          <button class="filter-tab" onclick="irParaAjuda('aj-painel')">Painel</button>
+          <button class="filter-tab" onclick="irParaAjuda('aj-lancamentos')">Lançamentos</button>
+          <button class="filter-tab" onclick="irParaAjuda('aj-cartoes')">Cartões</button>
+          <button class="filter-tab" onclick="irParaAjuda('aj-contasfixas')">Contas Fixas</button>
+          <button class="filter-tab" onclick="irParaAjuda('aj-orcamento')">Orçamento</button>
+          <button class="filter-tab" onclick="irParaAjuda('aj-categorias')">Categorias</button>
+          <button class="filter-tab" onclick="irParaAjuda('aj-investimentos')">Investimentos</button>
+          <button class="filter-tab" onclick="irParaAjuda('aj-config')">Config</button>
+          <button class="filter-tab" onclick="irParaAjuda('aj-duvidas')">Dúvidas</button>
+        </div>
+      </div>
+
+      <div class="card" id="aj-passos">
+        <h3>Primeiros passos</h3>
+        <ul class="ajuda-passos">
+          <li><b>Entre na família.</b> Na primeira vez, o app pergunta se você quer criar uma família nova ou entrar numa que já existe. Para entrar numa existente, você precisa de duas coisas: alguém de dentro liberou o seu e-mail em <b>Config → Membros da família</b>, e essa pessoa te passou o <b>código da família</b>. Sem estar na lista, o código sozinho não abre nada.</li>
+          <li><b>Cadastre os cartões.</b> Faça isso <i>antes</i> de sair lançando, porque é o cartão que decide em que mês a compra vira despesa. Vá em <b>Cartões</b> e informe o dia de fechamento e o de vencimento de cada um.</li>
+          <li><b>Cadastre as contas fixas.</b> Aluguel, luz, internet, escola — tudo que se repete todo mês vai em <b>Contas Fixas</b>. O app passa a te avisar quando alguma vence e ainda não foi paga.</li>
+          <li><b>Lance o dia a dia.</b> É em <b>Lançamentos</b> que entram as receitas e as despesas. É a tela que você vai usar mais.</li>
+          <li><b>Depois, com calma:</b> ajuste as palavras-chave em <b>Categorias</b> para o app classificar sozinho o que você lança, e defina tetos de gasto em <b>Orçamento</b>.</li>
+        </ul>
+      </div>
+
+      <div class="card" id="aj-periodo">
+        <h3>O seletor de ano e mês</h3>
+        <p>Na barra lateral, embaixo da navegação, tem a escolha de <b>ano</b> e <b>mês</b>. Ela vale para todas as telas ao mesmo tempo: trocar o mês ali muda o Painel, a lista de Lançamentos, o Orçamento, as Contas Fixas e as faturas dos Cartões de uma vez só.</p>
+        <p>O app sempre abre no mês de hoje. O <b>+</b> ao lado dos anos serve para preparar um ano futuro antes de ter qualquer lançamento nele; um ano adicionado assim, enquanto continuar vazio, pode ser removido no <b>×</b>.</p>
+        <p>No celular, essa barra fica escondida — toque no ícone de menu no topo para abri-la.</p>
+      </div>
+
+      <div class="card" id="aj-painel">
+        <h3>Painel</h3>
+        <p>É a tela de resumo, só de leitura: nada se cadastra aqui. Ela responde "como foi o mês".</p>
+        <ul>
+          <li><b>Saldo, Receitas e Despesas do mês</b> — os três cartões do topo. O número pequeno ao lado do título é a variação em relação ao mês anterior, e o risco embaixo é a evolução ao longo do ano.</li>
+          <li><b>Meta de economia</b> — compara o saldo do mês com a meta que você definiu em Config → Preferências. Sem meta definida, o cartão não tem o que comparar.</li>
+          <li><b>Contas fixas a pagar</b> — quanto ainda falta pagar das contas fixas deste mês. Só aparece se você tiver contas fixas cadastradas.</li>
+          <li><b>Gráficos</b> — receitas contra despesas ao longo do ano, participação de cada categoria no gasto (no mês e no ano), detalhamento do mês e a evolução anual.</li>
+        </ul>
+        <details class="conceito">
+          <summary>O que exatamente é o "saldo do mês"?</summary>
+          <div class="corpo"><p>É tudo que entrou menos tudo que saiu naquele mês. Positivo significa que sobrou dinheiro; negativo, que você gastou mais do que recebeu. Uma coisa importante: uma compra no cartão não conta no mês em que você comprou, e sim no mês em que a fatura vence — porque é aí que o dinheiro sai da conta de verdade.</p></div>
+        </details>
+      </div>
+
+      <div class="card" id="aj-lancamentos">
+        <h3>Lançamentos</h3>
+        <p>A tela do dia a dia. Em cima ficam dois formulários — <b>Nova Receita</b> (verde) e <b>Nova Despesa</b> (vermelho) — e embaixo a lista do mês selecionado.</p>
+        <p><b>Os campos:</b> data, descrição e valor são obrigatórios. O valor aceita o formato brasileiro, com vírgula nos centavos (<code>1.500,00</code>). "Conta" é livre, para você anotar de onde saiu o dinheiro: Pix, débito, dinheiro.</p>
+        <p><b>O seletor de categoria é um atalho de digitação</b>, não um campo salvo. Ao escolher "Transporte", o app escreve essa palavra na descrição para você — e é lendo a descrição que ele classifica depois. Você pode ignorar o seletor e digitar tudo na mão.</p>
+        <p><b>Parcelas</b> (só em despesa): digite 10 e o app cria os 10 lançamentos de uma vez, numerados <code>(1/10)</code>, <code>(2/10)</code> e assim por diante, cada um caindo um mês depois do anterior. O valor que você informa é o <b>da parcela</b>, não o total da compra.</p>
+        <p><b>Cartão:</b> escolhendo um cartão, aparece logo abaixo um aviso dizendo em qual fatura aquela compra vai cair e em que mês ela vira despesa. Deixando em "Nenhum (à vista)", a despesa conta no próprio mês da data.</p>
+        <p><b>Na lista:</b> as abas filtram por Todos, Receitas, Despesas e Parcelados. São 10 linhas por página. Compras parceladas aparecem agrupadas — dá para abrir o grupo e ver as parcelas uma a uma, ou excluir o grupo inteiro de uma vez. Para corrigir algo, use o lápis e edite ali mesmo na linha.</p>
+        <p>A lista mostra <b>só o mês selecionado</b> na barra lateral. Se um lançamento sumiu, quase sempre é isso: ele está em outro mês.</p>
+      </div>
+
+      <div class="card" id="aj-cartoes">
+        <h3>Cartões</h3>
+        <p>Aqui vive a parte mais confusa de finanças pessoais, e é a que o app resolve sozinho: <b>compra no cartão não é gasto do dia da compra, é gasto do dia em que a fatura vence</b>.</p>
+        <p>Cadastre cada cartão com o <b>dia de fechamento</b> e o <b>dia de vencimento</b>. Só isso já basta — o app calcula sozinho, para cada compra, em qual fatura ela caiu. O limite é opcional e serve só para você acompanhar quanto já comprometeu.</p>
+        <p>A tela mostra as faturas do mês selecionado (dá para abrir e ver item a item), um gráfico com as faturas ao longo do ano e a lista dos cartões cadastrados. Os cartões valem para a família toda.</p>
+        <details class="conceito">
+          <summary>Fechamento e vencimento não são a mesma coisa?</summary>
+          <div class="corpo">
+            <p><b>Fechamento</b> é o dia em que o cartão para de aceitar compras naquela fatura. <b>Vencimento</b> é o dia em que você paga.</p>
+            <p>Exemplo com fechamento dia 28 e vencimento dia 10: uma compra no dia 20 de março entra na fatura que fecha em 28 de março e vence em 10 de abril — logo, é uma despesa de <b>abril</b>. Já uma compra no dia 29 de março perdeu o fechamento e vai para a fatura seguinte, que vence em 10 de maio: despesa de <b>maio</b>.</p>
+            <p>É por isso que a mesma semana de compras pode aparecer em dois meses diferentes no Painel. Não é erro.</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="card" id="aj-contasfixas">
+        <h3>Contas Fixas</h3>
+        <p>Para tudo que se repete todo mês. Cadastre o nome, a categoria, o valor esperado e o dia do vencimento.</p>
+        <p><b>Como o app sabe que a conta foi paga:</b> ele procura, entre os lançamentos do mês, algum cuja descrição contenha o nome da conta. Se você cadastrou "Aluguel" e lançou uma despesa escrita "Aluguel março", ela é reconhecida e a conta aparece como paga. Por isso vale cadastrar com um nome curto e usar esse mesmo nome ao lançar.</p>
+        <p><b>Se a conta é debitada num cartão</b>, escolha o cartão no cadastro. Aí o "Marcar como paga" já joga o valor na fatura certa, em vez de contar como saída do mês.</p>
+        <p>Ao abrir o app, se houver conta vencida ou vencendo hoje ainda em aberto, aparece um aviso. Ele some quando a conta é marcada como paga — inclusive se quem pagou foi outra pessoa da família, em outro aparelho. Se você fechar o aviso no ✕, ele não volta a incomodar naquela sessão.</p>
+      </div>
+
+      <div class="card" id="aj-orcamento">
+        <h3>Orçamento</h3>
+        <p>Define um teto de gasto mensal por categoria e mostra quanto você já usou dele no mês selecionado.</p>
+        <p>O sinal do lado direito é direto: <b>🟢 OK</b> enquanto o gasto está abaixo de 85% do teto, <b>🟡 Atenção</b> a partir de 85%, <b>🔴 Estourou</b> quando passou. Para mudar um valor já cadastrado, basta clicar nele e digitar por cima.</p>
+        <p>O "gasto real" soma as despesas do mês que caem naquela categoria — seja porque a categorização automática as classificou assim, seja porque o nome da categoria aparece no campo "Conta" do lançamento.</p>
+        <details class="conceito">
+          <summary>Quanto devo colocar em cada categoria?</summary>
+          <div class="corpo"><p>Não existe número certo. O caminho mais fácil é olhar o que você de fato gastou nos últimos dois ou três meses no Painel, usar esse valor como teto inicial e ir apertando aos poucos nas categorias que você quer reduzir. Teto irreal demais só faz tudo ficar vermelho e você parar de olhar.</p></div>
+        </details>
+      </div>
+
+      <div class="card" id="aj-categorias">
+        <h3>Categorias</h3>
+        <p>É o motor que classifica seus lançamentos sozinho. Cada regra é um par: uma <b>palavra-chave</b> e a <b>categoria</b> que ela aciona. Cadastrando <code>uber</code> → <b>Transporte</b>, qualquer lançamento com "uber" na descrição vira Transporte.</p>
+        <p>O <b>tipo</b> decide onde a categoria aparece: só em Nova Receita, só em Nova Despesa, ou nos dois. É o que evita uma categoria de gasto ser oferecida quando você está lançando um salário.</p>
+        <p><b>A ordem importa:</b> vale a primeira regra que bater com a descrição. Se nenhuma bater, o app ainda tenta encontrar o nome de alguma categoria dentro da descrição; não achando nada, classifica como <b>Outros</b>. Muita coisa caindo em "Outros" é o sinal de que falta cadastrar palavra-chave aqui.</p>
+        <p>Vale lembrar: a categoria não fica gravada no lançamento, ela é calculada a partir da descrição toda vez. Então corrigir uma regra aqui reclassifica também tudo que já foi lançado.</p>
+      </div>
+
+      <div class="card" id="aj-investimentos">
+        <h3>Investimentos</h3>
+        <p>Uma carteira separada do fluxo do mês — o que entra aqui não mexe no saldo nem no orçamento.</p>
+        <p>As abas no topo são as <b>classes</b> (ações, fundos imobiliários, renda fixa...), e dá para criar outras no <b>+</b>. Cada aporte registra o ativo, o segmento, a data, a quantidade de cotas e o valor pago por cota.</p>
+        <p>A coluna <b>preço atual</b> é editável: digite ali o preço de hoje e o app recalcula quanto a posição vale agora, quanto rendeu em reais e em percentual. Nada é buscado da internet — a atualização é sua, quando você quiser conferir.</p>
+        <p>Há ainda uma aba de <b>dividendos</b>, para anotar o que os ativos pagaram, e uma de <b>distribuição</b>, que mostra o peso de cada classe e de cada ativo na carteira.</p>
+        <details class="conceito">
+          <summary>Cota, aporte, dividendo, rentabilidade</summary>
+          <div class="corpo">
+            <ul>
+              <li><b>Aporte</b> é cada vez que você põe dinheiro num investimento.</li>
+              <li><b>Cota</b> é a unidade que você compra. Comprar 10 cotas a R$ 25 é um aporte de R$ 250.</li>
+              <li><b>Valor médio da cota</b> é quanto você pagou em média por cota, somando todas as compras daquele ativo em datas e preços diferentes.</li>
+              <li><b>Dividendo</b> é o dinheiro que o investimento distribui para você, sem que você precise vender nada.</li>
+              <li><b>Rentabilidade (ROI)</b> é a diferença entre o que a posição vale hoje e o que você pagou por ela, em percentual. Enquanto você não vender, é lucro no papel — o número muda todo dia.</li>
+            </ul>
+          </div>
+        </details>
+      </div>
+
+      <div class="card" id="aj-config">
+        <h3>Config</h3>
+        <ul>
+          <li><b>Conta</b> — mostra com qual e-mail você entrou, e o botão de sair.</li>
+          <li><b>Aparência</b> — tema escuro, claro ou automático. Vale só neste aparelho: trocar o seu não muda o de mais ninguém da família.</li>
+          <li><b>Preferências</b> — a meta de economia mensal, que alimenta o Painel, e um nome de exibição.</li>
+          <li><b>Dados</b> — exportar tudo num arquivo JSON, ou restaurar a partir de um. Vale exportar de vez em quando: é o seu backup, e exclusão de lançamento não tem desfazer.</li>
+          <li><b>Membros da família</b> — quem está nessa lista enxerga e edita os mesmos lançamentos, em tempo real. Para convidar alguém, são dois passos: adicione o e-mail da pessoa na lista e depois passe a ela o <b>código da família</b>. Os dois são necessários.</li>
+        </ul>
+      </div>
+
+      <div class="card" id="aj-duvidas">
+        <h3>Dúvidas frequentes</h3>
+        <p><b>Todo mundo da família vê tudo?</b> Sim. Quem está na lista de membros vê e edita os mesmos lançamentos. Não existe lançamento privado — se isso importa para você, use uma família separada.</p>
+        <p><b>Lancei no celular e não apareceu no computador.</b> A sincronização é automática e quase imediata, mas depende de internet nos dois lados. Confira se você entrou com a mesma conta nos dois aparelhos.</p>
+        <p><b>Meu lançamento sumiu.</b> Antes de tudo, olhe o mês selecionado na barra lateral — a lista mostra só um mês por vez, e compra no cartão aparece no mês do vencimento da fatura, não no da compra.</p>
+        <p><b>Dá para usar sem internet?</b> Dá para abrir e consultar: o app pode ser instalado como aplicativo no celular e no computador. O que você lançar offline sincroniza quando a conexão voltar.</p>
+        <p><b>Excluí sem querer.</b> Não há como desfazer. É por isso que vale exportar o JSON em Config de tempos em tempos.</p>
+        <p><b>Troquei de celular.</b> Nada se perde: entre com a mesma conta e os dados voltam sozinhos, incluindo a família a que você pertence.</p>
       </div>
     </section>
 
@@ -2034,6 +2227,12 @@ function renderView(){
   else if(state.view==='investimentos') renderInvestimentos();
   else if(state.view==='categorias') renderCategorias();
   else if(state.view==='config') renderConfig();
+  /* 'ajuda' não entra aqui: é HTML fixo, sem nada que dependa de dados. */
+}
+
+function irParaAjuda(id){
+  const el = document.getElementById(id);
+  if(el) el.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 let charts = {};
