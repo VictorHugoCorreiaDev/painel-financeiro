@@ -1936,7 +1936,13 @@ function yearHasTransactions(y){
 }
 
 const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-let state = { view:'painel', year:2026, month:6 };
+/* O período começa no mês de hoje, resolvido na hora de abrir. Antes vinha
+   cravado em julho de 2026: quem entrava em qualquer outro mês caía num mês
+   que não era o dele e tinha que clicar para achar o próprio. É lido de novo a
+   cada login (ver onAuthStateChanged), porque uma aba aberta a noite inteira
+   pode atravessar a virada do mês. */
+function periodoDeHoje(){ const h = new Date(); return { year:h.getFullYear(), month:h.getMonth() }; }
+let state = Object.assign({ view:'painel' }, periodoDeHoje());
 
 document.querySelectorAll('.nav-btn').forEach(b=>{
   b.onclick = ()=>{ state.view = b.dataset.view; renderNav(); renderView(); closeSidebar(); };
@@ -3964,6 +3970,7 @@ function initApp(){
         if(user){
           if(loginScreen) loginScreen.classList.add('hidden');
           state.view = 'painel';
+          Object.assign(state, periodoDeHoje());
           renderNav();
           renderBrand();
           buildSidebarPeriod();
