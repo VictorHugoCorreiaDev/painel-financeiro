@@ -920,7 +920,11 @@ aplicarTema();
             <div class="field"><label>Valor da parcela (R$)</label><input type="text" inputmode="decimal" id="dValor" placeholder="150,00"></div>
             <div class="field"><label>Cartão</label><select id="dCartao" onchange="renderFaturaHint()"></select></div>
             <div class="field"><label>Conta</label><input type="text" id="dConta" placeholder="Pix, débito..."></div>
-            <div class="field" style="max-width:110px;"><label>Parcelas</label><input type="number" step="1" min="1" id="dParcelas" placeholder="1"></div>
+            <!-- 130px é o valor que já valia: com .entry-card .field em
+                 min-width:130px, um max-width menor que isso não encolhe nada
+                 (o min vence), só engana quem lê. O teto continua necessário
+                 para o flex:1 não esticar o campo como faz nos vizinhos. -->
+            <div class="field" style="max-width:130px;"><label>Parcelas</label><input type="number" step="1" min="1" id="dParcelas" placeholder="1"></div>
             <button class="btn expense-btn" onclick="addDespesa()">+ Despesa</button>
           </div>
           <div id="dFaturaHint" class="fatura-hint"></div>
