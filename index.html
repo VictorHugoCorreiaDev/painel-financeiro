@@ -85,9 +85,16 @@
      inventar uma segunda identidade, é o mesmo sistema virado: papel vira
      tinta, e o ultramarino sobe para um tom que se sustenta sobre escuro — o
      #322C85 original dá 2.3:1 ali e sumiria. */
+  /* A primeira versão deste tema levou a metáfora do papel longe demais e ficou
+     amarelada: o --text tinha 36% de saturação em amarelo e o --muted 12%, o que
+     num cinza grande de fundo escuro se lê como tela encardida, não como papel.
+     Agora a rampa é praticamente neutra, com o vermelho só um ponto acima do
+     azul — o bastante para não ficar azulada como o tema antigo, longe do
+     bastante para ninguém chamar de amarelo. Medido: a saturação do texto caiu
+     de 36% para 9%, e a do apagado de 12% para 3%. */
   :root[data-tema="escuro"]{
-    --bg:#141310; --panel:#1E1C18; --panel-2:#272420; --panel-3:#332F29; --border:#3A362F;
-    --text:#F2EDE3; --muted:#A69E8E;
+    --bg:#151413; --panel:#1D1C1B; --panel-2:#252423; --panel-3:#2E2D2B; --border:#3A3937;
+    --text:#EFEEEC; --muted:#A09E9A;
 
     --accent:#9A93EC;
     --accent-hover:#B0AAF2;
@@ -96,8 +103,9 @@
     --amber:#E0A32B; --coral:#E4796A; --green:#5FBE8B;
     --teal:#4FB8BE; --violet:#B48CE0; --blue:#6BA8D8; --periwinkle:#9A93EC;
 
-    --grid-linha:#2B2822;
-    --track:#332F29;
+    /* estas duas são superfície grande e puxavam o amarelo junto */
+    --grid-linha:#2C2B29;
+    --track:#302F2D;
     --shadow-1:0 1px 2px rgba(0,0,0,.35);
     --shadow-2:0 2px 8px rgba(0,0,0,.4);
     --shadow-3:0 12px 32px rgba(0,0,0,.5);
@@ -3097,7 +3105,12 @@ function checkContasVencidasOuHoje(){
      é lembrete. Pintar as duas de vermelho apaga a diferença. */
   avisoVencimento = avisar(frase, {
     tipo: vencidas.length ? 'erro' : 'info',
-    duracao: 0,
+    /* 15s, e não até fechar: o recado aparece no meio da tela toda vez que o app
+       abre, e ficar parado ali obriga a fechar antes de usar qualquer coisa. Em
+       15s dá para ler as contas e o total sem que ele vire pedágio.
+       O aoFechar continua valendo só para o ✕ — sumir sozinho não conta como
+       "dispensado", então a correção que vem do servidor ainda pode aparecer. */
+    duracao: 15000,
     /* o rótulo diz de onde vem: sem ele, "9 vencidas e 1 vencendo hoje" no meio
        da tela não deixa claro que a lista é de contas fixas, e não de
        lançamentos ou parcelas */
