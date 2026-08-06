@@ -110,8 +110,13 @@
   /* tnum + lnum é o que alinha os números uns embaixo dos outros: sem isso o 1
      é mais estreito que o 8 e as colunas de valor ficam serrilhadas. Vale para
      tudo que é dinheiro, data ou código. */
-  .num, table.data td, .orc-input, .pager-btn{
+  .num, .orc-input, .pager-btn, table.data td.num, .topbar .period{
     font-family:'JetBrains Mono',monospace; font-feature-settings:"tnum" 1, "lnum" 1; }
+  /* Mono é para número, data e código — não para descrição. A tabela inteira em
+     mono deixava "Uber para o trabalho" com cara de log de servidor. Nas células
+     de texto os algarismos ainda saem de largura fixa, pelo tnum da própria
+     Geist, então as colunas continuam alinhadas. */
+  table.data td{ font-feature-settings:"tnum" 1, "lnum" 1; }
   h1,h2,h3{ font-family:'Fraunces',serif; margin:0; }
   /* O eixo opsz da Fraunces: título grande pede serifa fina e alto contraste,
      rótulo pequeno pede o desenho robusto. Escalar um só desenho engorda o
@@ -285,6 +290,10 @@
   .field textarea:focus{ border-color:var(--accent); }
   .btn{ background:var(--accent); color:#FFFFFF; border:none; border-radius:10px; padding:9px 16px; font-weight:600; font-size:13px; box-shadow:var(--shadow-1); }
   .btn:hover{ background:var(--accent-hover); }
+  /* No escuro o ultramarino precisa subir de tom para se sustentar sobre tinta,
+     e aí o rótulo branco cai para 2.7:1 — abaixo de legível. Sobre acento
+     claro quem lê é a tinta. */
+  :root[data-tema="escuro"] .btn{ color:#16142B; }
   /* Secundário é botão de papel: branco, borda quente, sombra rasa. Precisa do
      próprio hover — o hover do primário pinta o fundo de ultramarino, e a
      regra de .btn.secondary vem depois, então sem isto o botão não daria
@@ -687,9 +696,9 @@
   .conceito .corpo p, .conceito .corpo li{ font-size:12.5px; color:var(--muted); }
 
   .filter-tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:18px 0 12px; }
-  .filter-tab{ padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:12.5px; font-weight:600; }
+  .filter-tab{ height:32px; padding:0 14px; border-radius:10px; border:1px solid var(--border); background:var(--panel); color:var(--muted); font-size:12px; font-weight:600; box-shadow:var(--shadow-1); }
   .filter-tab:hover{ color:var(--text); }
-  .filter-tab.active{ background:var(--panel-3); color:var(--amber-texto); border-color:var(--amber); }
+  .filter-tab.active{ background:var(--accent-soft); color:var(--accent); border-color:var(--accent); }
 
   /* MOBILE TOPBAR + GAVETA */
   .mobile-topbar{ display:none; }
@@ -1392,15 +1401,27 @@ aplicarTema();
 
 <script>
 const STORAGE_KEY = 'painel_financeiro_db_v1';
-const CAT_PALETTE = ["#322C85","#C08A1E","#1D7A4C","#A8382B","#1C7F86","#7B4BC4","#2C6FA8","#B5642A","#5C574D","#3F7D5C","#8A4C7D","#5A61E8","#8A6410"];
+/* Duas paletas, a mesma ordem de matizes. A do papel creme é escura e saturada
+   porque compete com branco; sobre tinta ela some — o ultramarino #322C85 no
+   fundo escuro é praticamente um buraco no anel. A escura é a mesma família
+   levantada, para uma categoria não trocar de cor ao virar o tema.
+   Os gráficos são canvas e não acompanham variável CSS, mas quem troca o tema
+   chama renderView(), que recria todos — então basta ler o tema na hora. */
+const CAT_PALETTE_CLARO  = ["#322C85","#C08A1E","#1D7A4C","#A8382B","#1C7F86","#7B4BC4","#2C6FA8","#B5642A","#5C574D","#3F7D5C","#8A4C7D","#5A61E8","#8A6410"];
+const CAT_PALETTE_ESCURO = ["#9A93EC","#E0A32B","#5FBE8B","#E4796A","#4FB8BE","#B48CE0","#6BA8D8","#D9915C","#A69E8E","#7FCBA4","#D08BC0","#8E95F5","#C9A227"];
+function catPalette(){
+  return document.documentElement.dataset.tema === 'escuro' ? CAT_PALETTE_ESCURO : CAT_PALETTE_CLARO;
+}
 function colorFor(cat){
   const cats = allCategoryNames();
   const idx = cats.indexOf(cat);
-  return CAT_PALETTE[(idx>=0?idx:0) % CAT_PALETTE.length];
+  const p = catPalette();
+  return p[(idx>=0?idx:0) % p.length];
 }
 function paletteColor(key, keys){
   const idx = keys.indexOf(key);
-  return CAT_PALETTE[(idx>=0?idx:0) % CAT_PALETTE.length];
+  const p = catPalette();
+  return p[(idx>=0?idx:0) % p.length];
 }
 
 function defaultDB(){
@@ -3257,8 +3278,9 @@ function cartaoNome(id){
    item repinta os que sobraram, e aí a legenda de ontem mente sobre o gráfico
    de hoje. */
 function corDoCartao(cartao){
-  if(!cartao) return CAT_PALETTE[0];
-  return CAT_PALETTE[Math.max(0, cartao.id-1) % CAT_PALETTE.length];
+  const p = catPalette();
+  if(!cartao) return p[0];
+  return p[Math.max(0, cartao.id-1) % p.length];
 }
 /* Soma da fatura de um cartão que vence no mês dado. Receita lançada no cartão
    (estorno) entra abatendo, que é o que ela faz na fatura de verdade. */
