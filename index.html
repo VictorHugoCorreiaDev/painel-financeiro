@@ -395,6 +395,22 @@
     padding:0 0 0 4px; flex-shrink:0; }
   .toast-fechar:hover{ color:var(--text); }
   .toast.saindo{ animation:toast-sai .16s ease-in forwards; }
+  /* Barra do e-mail pendente. Âmbar, não coral: nada quebrou, é só uma
+     pendência — o app funciona igual com o e-mail sem confirmar. */
+  .verif-bar{ display:flex; gap:12px; align-items:center; margin-bottom:16px;
+    background:var(--panel-2); border:1px solid var(--border); border-left:3px solid var(--amber);
+    padding:12px 14px; border-radius:10px; }
+  .verif-txt{ flex:1; min-width:0; }
+  .verif-titulo{ font-size:13px; font-weight:700; }
+  .verif-det{ color:var(--muted); font-size:12.5px; margin-top:2px; }
+  .verif-bar .btn{ flex-shrink:0; padding:7px 14px; font-size:12.5px; }
+  .verif-fechar{ background:none; border:none; color:var(--muted); font-size:17px; line-height:1;
+    padding:0 0 0 2px; flex-shrink:0; }
+  .verif-fechar:hover{ color:var(--text); }
+  @media (max-width:560px){
+    .verif-bar{ flex-wrap:wrap; }
+    .verif-txt{ flex-basis:100%; }
+  }
   @keyframes toast-entra{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
   @keyframes toast-sai{ to{ opacity:0; transform:translateY(6px); } }
 
@@ -755,12 +771,12 @@ aplicarTema();
     <h2>Bem-vindo(a)!</h2>
     <div style="font-size:12px; color:var(--muted); text-align:center; margin-top:-8px;">Crie uma família nova ou entre em uma existente com um código de convite.</div>
     <div class="onb-box">
-      <div class="field"><label>Nome da família</label><input type="text" id="onbNomeFamilia" placeholder="Ex: Andrade"></div>
+      <div class="field"><label>Nome da família</label><input type="text" id="onbNomeFamilia"></div>
       <button class="btn" id="onbCriarBtn" style="width:100%;">Criar família nova</button>
     </div>
     <div class="onb-divider">ou</div>
     <div class="onb-box">
-      <div class="field"><label>Código de convite</label><input type="text" id="onbCodigoInput" placeholder="ex: andrade-2v4x"></div>
+      <div class="field"><label>Código de convite</label><input type="text" id="onbCodigoInput"></div>
       <button class="btn secondary" id="onbEntrarBtn" style="width:100%;">Entrar com código</button>
     </div>
     <div class="login-error" id="onbError"></div>
@@ -828,6 +844,19 @@ aplicarTema();
   </aside>
 
   <main class="main">
+
+    <!-- Barra de e-mail não confirmado. Fica fora das telas, no topo do
+         conteúdo, porque vale para o app inteiro e porque o reenvio precisa
+         estar à mão: o e-mail do Firebase cai no spam com frequência e a pessoa
+         volta aqui para pedir outro. Só aparece para quem tem e-mail pendente. -->
+    <div id="verifBar" class="verif-bar hidden">
+      <div class="verif-txt">
+        <div class="verif-titulo">Confirme seu e-mail</div>
+        <div class="verif-det" id="verifDet"></div>
+      </div>
+      <button class="btn secondary" id="verifReenviar">Reenviar</button>
+      <button class="verif-fechar" id="verifFechar" aria-label="Fechar aviso">×</button>
+    </div>
 
     <section class="view" id="view-painel">
       <div class="topbar"><h2>Visão Geral</h2><div class="period" id="periodLabel">—</div></div>
@@ -4093,7 +4122,10 @@ function showInitError(err){
     if(msg) msg.textContent = (err && err.message) ? err.message : 'Erro desconhecido ao iniciar o app.';
   }
 }
-function translateAuthError(code){
+/* fallback troca a última frase: o mesmo mapa serve para entrar, para criar
+   conta e para os e-mails de confirmação/redefinição, e "Não foi possível
+   entrar" mentiria nos dois últimos casos. */
+function translateAuthError(code, fallback){
   const map = {
     'auth/invalid-email':'E-mail inválido.',
     'auth/user-disabled':'Usuário desativado.',
@@ -4106,9 +4138,69 @@ function translateAuthError(code){
     'auth/operation-not-allowed':'Login por e-mail/senha ainda não está habilitado no Firebase (ative em Authentication → Sign-in method).',
     'auth/configuration-not-found':'A Autenticação ainda não foi configurada no projeto Firebase (ative em Authentication → Sign-in method → E-mail/senha).',
     'auth/too-many-requests':'Muitas tentativas. Tente novamente mais tarde.',
-    'auth/network-request-failed':'Falha de conexão. Verifique sua internet.'
+    'auth/network-request-failed':'Falha de conexão. Verifique sua internet.',
+    'auth/missing-email':'Digite seu e-mail.',
+    'auth/quota-exceeded':'O limite diário de e-mails do Firebase estourou. Tente amanhã.',
+    /* Os três abaixo não são culpa de quem está usando o app: apontam para o
+       painel do Firebase, e a mensagem diz onde mexer para não virar caça ao
+       tesouro quando o e-mail parar de sair. */
+    'auth/invalid-sender':'O remetente do e-mail está inválido no Firebase (Authentication → Templates).',
+    'auth/invalid-message-payload':'O modelo de e-mail do Firebase está inválido (Authentication → Templates).',
+    'auth/unauthorized-continue-uri':'Este domínio não está autorizado no Firebase (Authentication → Settings → Authorized domains).'
   };
-  return map[code] || 'Não foi possível entrar. Tente novamente.';
+  return map[code] || fallback || 'Não foi possível entrar. Tente novamente.';
+}
+/* O Firebase não manda nada por conta própria quando a conta nasce — sem esta
+   chamada o e-mail de confirmação simplesmente nunca sai, que era o caso aqui.
+   O recado repete o endereço e cita o spam de propósito: o remetente é o padrão
+   do Firebase (noreply@painel-financeiro-35769.firebaseapp.com), que não passa
+   por nenhum SPF/DKIM do domínio próprio e cai no lixo eletrônico com
+   frequência. Nunca rejeita: quem chamou já está entrando no app e não tem o
+   que fazer com um erro que trave o caminho. */
+function enviarVerificacaoEmail(user){
+  if(!user || user.emailVerified) return Promise.resolve(false);
+  return user.sendEmailVerification()
+    .then(()=>{
+      avisar('Enviamos um e-mail de confirmação para ' + user.email + '.', {
+        tipo:'ok', titulo:'Confirme seu e-mail',
+        detalhe:'Se não chegar em alguns minutos, procure no spam ou no lixo eletrônico.',
+        duracao:9000
+      });
+      return true;
+    })
+    .catch(err=>{
+      avisar(translateAuthError(err.code, 'Não foi possível enviar o e-mail de confirmação.'),
+        { tipo:'erro', titulo:'Confirme seu e-mail', duracao:9000 });
+      return false;
+    });
+}
+/* A barra some sozinha assim que o e-mail é confirmado. emailVerified só muda
+   depois de um reload() do usuário, por isso quem chama recarrega antes: sem
+   isso a barra continuaria aparecendo para quem acabou de clicar no link. */
+function atualizaBarraVerificacao(user){
+  const bar = document.getElementById('verifBar');
+  if(!bar) return;
+  if(!user || user.emailVerified){ bar.classList.add('hidden'); return; }
+  const det = document.getElementById('verifDet');
+  if(det) det.textContent = 'Mandamos um link para ' + (user.email || 'seu e-mail') + '. Confira também o spam.';
+  bar.classList.remove('hidden');
+}
+function setupBarraVerificacao(auth){
+  const bar = document.getElementById('verifBar');
+  if(!bar) return;
+  const btn = document.getElementById('verifReenviar');
+  const fechar = document.getElementById('verifFechar');
+  if(btn) btn.onclick = ()=>{
+    const user = auth.currentUser;
+    if(!user) return;
+    btn.disabled = true;
+    const rotulo = btn.textContent;
+    btn.textContent = 'Enviando...';
+    enviarVerificacaoEmail(user).finally(()=>{ btn.disabled = false; btn.textContent = rotulo; });
+  };
+  /* Fechar esconde só nesta sessão: na próxima abertura a barra volta, porque
+     o e-mail continua sem confirmar. */
+  if(fechar) fechar.onclick = ()=> bar.classList.add('hidden');
 }
 function setupLoginUI(auth){
   const btn = document.getElementById('loginBtn');
@@ -4133,7 +4225,11 @@ function setupLoginUI(auth){
     } else {
       btn.textContent = 'Criando conta...';
       auth.createUserWithEmailAndPassword(email, pass)
-        .catch(err=>{ errEl.textContent = translateAuthError(err.code); })
+        /* O e-mail de confirmação sai daqui, e não do onAuthStateChanged: lá
+           a função roda também em toda abertura de app de quem já está logado,
+           e reenviaria o link a cada visita. */
+        .then(cred=> enviarVerificacaoEmail(cred.user))
+        .catch(err=>{ errEl.textContent = translateAuthError(err.code, 'Não foi possível criar a conta. Tente novamente.'); })
         .finally(()=>{ btn.disabled = false; btn.textContent = 'Criar conta'; });
     }
   };
@@ -4154,13 +4250,26 @@ function setupLoginUI(auth){
       toggleEl.textContent = 'Não tem conta? Criar uma';
     }
   });
-  document.getElementById('forgotPasswordLink').addEventListener('click', e=>{
+  const forgotEl = document.getElementById('forgotPasswordLink');
+  forgotEl.addEventListener('click', e=>{
     e.preventDefault();
     const email = emailEl.value.trim();
     if(!email){ errEl.style.color = 'var(--coral)'; errEl.textContent = 'Digite seu e-mail acima e clique de novo.'; return; }
+    if(forgotEl.dataset.enviando === '1') return;
+    forgotEl.dataset.enviando = '1';
+    errEl.style.color = 'var(--muted)';
+    errEl.textContent = 'Enviando...';
     auth.sendPasswordResetEmail(email)
-      .then(()=>{ errEl.style.color = 'var(--green)'; errEl.textContent = 'E-mail de redefinição enviado.'; })
-      .catch(err=>{ errEl.style.color = 'var(--coral)'; errEl.textContent = translateAuthError(err.code); });
+      .then(()=>{
+        /* Não dá para prometer "enviado": com a proteção contra enumeração de
+           e-mail ligada (padrão do Firebase), esta chamada dá sucesso mesmo
+           quando não existe conta com o endereço, e nada é enviado. A frase
+           antiga mandava a pessoa esperar um e-mail que nunca ia chegar. */
+        errEl.style.color = 'var(--green)';
+        errEl.textContent = 'Se existir uma conta com ' + email + ', o link já saiu. Confira também o spam.';
+      })
+      .catch(err=>{ errEl.style.color = 'var(--coral)'; errEl.textContent = translateAuthError(err.code, 'Não foi possível enviar o e-mail de redefinição.'); })
+      .finally(()=>{ forgotEl.dataset.enviando = ''; });
   });
 }
 function initApp(){
@@ -4171,6 +4280,7 @@ function initApp(){
     const fbApp = firebase.apps && firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(syncCfg.firebaseConfig);
     const auth = firebase.auth(fbApp);
     setupLoginUI(auth);
+    setupBarraVerificacao(auth);
 
     auth.onAuthStateChanged(user=>{
       try{
@@ -4188,7 +4298,12 @@ function initApp(){
              não ficar sem aviso, e roda de novo quando o servidor responde */
           checkContasVencidasOuHoje();
           resolveFamiliaEConecta(user);
+          /* reload() antes de olhar emailVerified: o campo fica velho na sessão
+             local, então quem clicou no link e voltou veria a barra de novo. */
+          atualizaBarraVerificacao(user);
+          user.reload().then(()=> atualizaBarraVerificacao(auth.currentUser)).catch(()=>{});
         } else {
+          atualizaBarraVerificacao(null);
           if(loginScreen) loginScreen.classList.remove('hidden');
           hideOnboarding();
           onboardingWired = false;
