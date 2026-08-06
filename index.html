@@ -397,6 +397,11 @@
   .toast.saindo{ animation:toast-sai .16s ease-in forwards; }
   /* Barra do e-mail pendente. Âmbar, não coral: nada quebrou, é só uma
      pendência — o app funciona igual com o e-mail sem confirmar. */
+  /* O .hidden deste arquivo nunca foi genérico: cada tela declara o seu
+     (#appLoading.hidden, #loginScreen.hidden...). Sem esta linha a barra
+     ficava com display:flex e aparecia para todo mundo, inclusive para quem
+     já tinha confirmado o e-mail. */
+  .verif-bar.hidden{ display:none; }
   .verif-bar{ display:flex; gap:12px; align-items:center; margin-bottom:16px;
     background:var(--panel-2); border:1px solid var(--border); border-left:3px solid var(--amber);
     padding:12px 14px; border-radius:10px; }
