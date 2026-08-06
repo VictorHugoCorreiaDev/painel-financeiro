@@ -1,0 +1,63 @@
+<!-- Sem width/height de propósito: só com o viewBox o desenho acompanha o
+     tamanho da janela, e o mesmo arquivo serve para gerar 192 e 512 trocando
+     só o window-size. Com as dimensões cravadas em 512, o de 192 saía
+     recortado em vez de reduzido. -->
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <title>Kofre+</title>
+  <!--
+    ORIGEM DO ÍCONE. icon-192.png e icon-512.png saem daqui — não edite os PNGs
+    à mão, eles são só o produto deste arquivo.
+
+    Para regerar, sirva a pasta em localhost:8081 e rode o Chrome apontando
+    para http://localhost:8081/icon.svg com estas flags (cada uma com dois
+    hifens na frente, que não cabem dentro de um comentário de XML):
+
+      512:  headless=new  hide-scrollbars  window-size=512,512
+            force-device-scale-factor=1      screenshot=icon-512.png
+
+      192:  headless=new  hide-scrollbars  window-size=512,512
+            force-device-scale-factor=0.375  screenshot=icon-192.png
+
+    Duas flags que parecem detalhe e não são:
+
+      hide-scrollbars, senão o Chrome desenha barra de rolagem por cima do
+      desenho.
+
+      force-device-scale-factor, porque é ele que define o tamanho de saída.
+      Encolher a janela para 192 não funciona: o headless tem largura mínima
+      de janela, então o desenho fica centrado numa janela maior e o print
+      recorta um pedaço em vez de reduzir. A janela fica em 512 nos dois
+      casos e quem muda a escala é o fator.
+
+    DUAS REGRAS QUE O DESENHO PRECISA RESPEITAR
+
+    1. Zona segura. O manifest declara os ícones como "any maskable", e no
+       Android a máscara recorta um círculo — tudo que importa tem de caber no
+       círculo de centro (256,256) e raio 204.8 (40% do lado). Foi o que
+       quebrou a versão anterior, que encostava nas bordas e perdia as pontas
+       do K.
+    2. Fundo opaco. Maskable não aceita transparência: o recorte precisa de
+       tinta até a borda do quadrado, não só embaixo do glifo.
+
+    As cores são as do design system: papel creme de fundo, ultramarino no
+    glifo. Se o acento mudar, muda aqui e regera os dois PNGs.
+  -->
+  <rect width="512" height="512" fill="#FAF6EE"/>
+
+  <!-- O glifo é desenhado num quadrado de 100x100 e escalado para o centro, que
+       é o que mantém as medidas abaixo legíveis (haste com 19 de 100, e não
+       48,64 de 512). -->
+  <g transform="translate(256 256) scale(2.56) translate(-50 -50)">
+    <g fill="#322C85" stroke="#322C85" stroke-width="19" stroke-linecap="butt">
+      <!-- haste do K -->
+      <rect x="8" y="14" width="19" height="82" stroke="none"/>
+      <!-- braço de cima e perna de baixo, saindo do mesmo ponto na haste -->
+      <line x1="25" y1="57" x2="63" y2="19"/>
+      <line x1="25" y1="57" x2="70" y2="96"/>
+      <!-- o "+" sobrescrito, afastado da ponta do braço para os dois não
+           virarem uma mancha só nos tamanhos pequenos (34px na sidebar) -->
+      <rect x="77" y="15.5" width="23" height="8.5" rx="1.5" stroke="none"/>
+      <rect x="84.25" y="8.25" width="8.5" height="23" rx="1.5" stroke="none"/>
+    </g>
+  </g>
+</svg>
