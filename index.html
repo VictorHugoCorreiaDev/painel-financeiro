@@ -4380,6 +4380,11 @@ function initApp(){
 
     const fbApp = firebase.apps && firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(syncCfg.firebaseConfig);
     const auth = firebase.auth(fbApp);
+    /* Sem isto o Firebase manda os e-mails de confirmação e de redefinição no
+       template padrão em inglês ("Follow this link to verify your email
+       address"), que é o que chegava. O idioma vale para o e-mail e para a
+       página de ação do link, que também abria em inglês pelo lang=en. */
+    auth.languageCode = 'pt-BR';
     setupLoginUI(auth);
     setupBarraVerificacao(auth);
 
