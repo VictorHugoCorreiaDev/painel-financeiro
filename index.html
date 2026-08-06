@@ -7,56 +7,124 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<meta name="theme-color" content="#0D1326">
+<meta name="theme-color" content="#FAF6EE">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kofre+">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Três papéis, três famílias, como manda o design system: Fraunces é a
+     display (títulos e números grandes), Geist é a de interface, JetBrains Mono
+     carrega os números em tabela. A Fraunces entra como fonte variável com eixo
+     de tamanho óptico (opsz) — é ele que deixa o título grande com serifa fina
+     e o pequeno com serifa robusta, em vez de escalar o mesmo desenho. -->
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
 <style>
-  /* Tema escuro é o padrão — é como o app sempre foi, então quem não mexer em
-     nada continua vendo exatamente isto. O claro entra por [data-tema="claro"]
-     no <html>, resolvido em JS (ver aplicarTema): assim "automático" não exige
-     duplicar a paleta dentro de um @media, e o Chart.js pode simplesmente ler
-     as variáveis já resolvidas. */
+  /* ===== CREAM PAPER ULTRAMARINE =====
+     O claro passou a ser o padrão porque o sistema é ele: papel creme, cards
+     brancos, ultramarino de acento. O escuro continua existindo para quem já
+     usava, resolvido em JS por [data-tema] no <html> (ver aplicarTema) — assim
+     "automático" não exige duplicar a paleta dentro de um @media, e o Chart.js
+     pode simplesmente ler as variáveis já resolvidas.
+
+     Os nomes das variáveis são os antigos (--panel, --amber, --coral) de
+     propósito: renomear tudo para --bg-raised/--danger mexeria em cada regra
+     do arquivo e no JS dos gráficos sem mudar um pixel do resultado. O que
+     valia a pena trocar foram os valores e os papéis.
+
+     A rampa de papel do design system dá quatro degraus (100/300/600/800); os
+     intermediários abaixo foram interpolados na mesma temperatura quente, para
+     a escala não esfriar no meio. */
   :root{
-    --bg:#0D1326; --panel:#151D38; --panel-2:#1B2444; --panel-3:#202B52; --border:#28315A;
-    --text:#E9ECF7; --muted:#8C93B8;
-    --amber:#E8A33D; --teal:#3FC1C9; --coral:#E8636B; --violet:#B47EE5;
-    --green:#5BD97A; --blue:#4FA8E0; --periwinkle:#7C83FD;
-    --grid-linha:#1F2847;   /* linhas de grade dos gráficos */
-    --track:#232C50;        /* parte não preenchida dos anéis e barras */
-    --sombra:rgba(0,0,0,.45);
-    /* O âmbar faz dois papéis: fundo de botão (onde o texto é quase preto) e
-       cor de texto (aba ativa, item de menu ativo, links). Escurecer um único
-       tom serviria a um e estragaria o outro, então o papel de texto tem a sua
-       própria variável. No escuro os dois são o mesmo tom — nada muda. */
-    --amber-texto:#E8A33D;
+    --paper-100:#FAF6EE; --paper-200:#F3EDE0; --paper-300:#E6DFCE; --paper-400:#CFC7B2;
+    --paper-500:#9A9384;  --paper-600:#5C574D; --paper-700:#3A3730; --paper-800:#1F1D1A;
+
+    --bg:var(--paper-100);      /* bg-canvas */
+    --panel:#FFFFFF;            /* bg-raised — cards, popovers */
+    --panel-2:var(--paper-200); /* bg-sunken — input, disabled */
+    --panel-3:var(--paper-300);
+    --border:var(--paper-300);  /* border-1 */
+    --text:var(--paper-800);    /* fg-1 */
+    --muted:var(--paper-600);   /* fg-3 */
+
+    /* O ultramarino é o acento do sistema. Ele fazia falta aqui: o app usava o
+       âmbar como cor primária E como cor de aviso, então "isto está selecionado"
+       e "isto merece atenção" saíam do mesmo pote. Agora o ultramarino é o
+       primário (nav ativo, botão principal, foco) e o âmbar volta a ser só
+       aviso, que é o papel dele no design system (marigold = warning). */
+    --accent:#322C85;
+    --accent-hover:#3F38A3;
+    --accent-soft:#ECEAF7;      /* fundo de hover/active */
+
+    --amber:#E0A32B;    /* marigold — preenchimento */
+    --coral:#A8382B;    /* vermelho-tijolo — danger */
+    --green:#1D7A4C;    /* verde-amazônico — success */
+    --teal:#1C7F86; --violet:#7B4BC4; --blue:#2C6FA8; --periwinkle:#5A61E8;
+
+    --grid-linha:#EDE7D9;   /* linhas de grade dos gráficos */
+    --track:var(--paper-300); /* parte não preenchida dos anéis e barras */
+
+    /* Três elevações, como no sistema. A sombra do papel creme é quente e rasa
+       — a de antes era preta a 45%, que sobre creme suja em vez de levantar. */
+    --shadow-1:0 1px 2px rgba(31,29,26,.06);
+    --shadow-2:0 2px 8px rgba(31,29,26,.08);
+    --shadow-3:0 12px 32px rgba(31,29,26,.14);
+    --sombra:rgba(31,29,26,.14);
+
+    /* O âmbar faz dois papéis: fundo (onde o texto é quase preto) e cor de
+       texto. Um tom só não serve aos dois — o marigold de preenchimento dá
+       2.1:1 como texto sobre creme. Por isso o papel de texto tem a sua
+       própria variável, escurecida até passar em corpo pequeno. */
+    --amber-texto:#8A6410;
   }
-  :root[data-tema="claro"]{
-    --bg:#F4F6FB; --panel:#FFFFFF; --panel-2:#EEF1F8; --panel-3:#E3E8F3; --border:#D5DCEA;
-    --text:#141B33; --muted:#5F6789;
-    /* Os acentos escurecem no claro por contraste: os tons originais foram
-       escolhidos para brilhar sobre fundo escuro e, sobre branco, viram texto
-       ilegível — o verde #5BD97A dá menos de 2:1 num valor de saldo. */
-    --amber:#B87613; --teal:#17868F; --coral:#C0262F; --violet:#8B4BD0;
-    --green:#2E9E4F; --blue:#2C7FB8; --periwinkle:#5A61E8;
-    --grid-linha:#E6EAF3;
-    --track:#E4E8F2;
-    --sombra:rgba(20,27,51,.14);
-    --amber-texto:#8A5A0B;
+  /* O escuro não está no design system, mas o app tem gente usando. Em vez de
+     inventar uma segunda identidade, é o mesmo sistema virado: papel vira
+     tinta, e o ultramarino sobe para um tom que se sustenta sobre escuro — o
+     #322C85 original dá 2.3:1 ali e sumiria. */
+  :root[data-tema="escuro"]{
+    --bg:#141310; --panel:#1E1C18; --panel-2:#272420; --panel-3:#332F29; --border:#3A362F;
+    --text:#F2EDE3; --muted:#A69E8E;
+
+    --accent:#9A93EC;
+    --accent-hover:#B0AAF2;
+    --accent-soft:#2A2745;
+
+    --amber:#E0A32B; --coral:#E4796A; --green:#5FBE8B;
+    --teal:#4FB8BE; --violet:#B48CE0; --blue:#6BA8D8; --periwinkle:#9A93EC;
+
+    --grid-linha:#2B2822;
+    --track:#332F29;
+    --shadow-1:0 1px 2px rgba(0,0,0,.35);
+    --shadow-2:0 2px 8px rgba(0,0,0,.4);
+    --shadow-3:0 12px 32px rgba(0,0,0,.5);
+    --sombra:rgba(0,0,0,.45);
+    --amber-texto:#E0A32B;
   }
   *{box-sizing:border-box;}
-  body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:'Geist',sans-serif; -webkit-font-smoothing:antialiased; }
   .app{ display:flex; min-height:100vh; }
-  .num{ font-family:'IBM Plex Mono',monospace; }
-  h1,h2,h3{ font-family:'Sora',sans-serif; margin:0; }
-  button{ font-family:'Inter'; cursor:pointer; }
-  input, select{ font-family:'Inter'; }
+  /* tnum + lnum é o que alinha os números uns embaixo dos outros: sem isso o 1
+     é mais estreito que o 8 e as colunas de valor ficam serrilhadas. Vale para
+     tudo que é dinheiro, data ou código. */
+  .num, table.data td, .orc-input, .pager-btn{
+    font-family:'JetBrains Mono',monospace; font-feature-settings:"tnum" 1, "lnum" 1; }
+  h1,h2,h3{ font-family:'Fraunces',serif; margin:0; }
+  /* O eixo opsz da Fraunces: título grande pede serifa fina e alto contraste,
+     rótulo pequeno pede o desenho robusto. Escalar um só desenho engorda o
+     título e apaga o miúdo. */
+  h1{ font-variation-settings:"opsz" 96; }
+  h2{ font-variation-settings:"opsz" 48; }
+  h3{ font-variation-settings:"opsz" 18; }
+  button{ font-family:'Geist'; cursor:pointer; }
+  input, select{ font-family:'Geist'; }
+  /* Eyebrow do design system: rótulo de seção em caixa alta, apagado, acima do
+     que importa. Já era o padrão de fato nos .card h3 e .nav-group-label. */
+  .eyebrow{ font-size:10px; font-weight:600; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.1em; }
 
   /* SIDEBAR */
   .sidebar{ width:216px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--border);
@@ -66,17 +134,17 @@
     background-image:url('icon-192.png'); background-color:var(--bg);
     background-size:cover; background-position:center; overflow:hidden; }
   .brand-mark::after{ content:"✎"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    background:rgba(13,19,38,.55); color:#fff; font-size:12px; opacity:0; transition:.12s; }
+    background:rgba(31,29,26,.55); color:#fff; font-size:12px; opacity:0; transition:.12s; }
   .brand-mark:hover::after{ opacity:1; }
   .brand-text{ flex:1; min-width:0; }
   .brand h1{ font-size:15px; line-height:1.25; font-weight:700; }
-  .brand span{ display:block; color:var(--muted); font-size:11px; font-weight:400; font-family:'Inter'; }
+  .brand span{ display:block; color:var(--muted); font-size:11px; font-weight:400; font-family:'Geist'; }
   .brand-edit-btn{ background:transparent; border:none; color:var(--muted); font-size:12px; padding:4px; border-radius:6px; flex-shrink:0; }
-  .brand-edit-btn:hover{ color:var(--amber-texto); background:var(--panel-2); }
+  .brand-edit-btn:hover{ color:var(--accent); background:var(--accent-soft); }
   .brand-edit-row{ display:none; flex-direction:column; gap:7px; margin-top:2px; padding:0 4px; }
   .brand-edit-row input{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
     padding:7px 9px; color:var(--text); font-size:12.5px; outline:none; }
-  .brand-edit-row input:focus{ border-color:var(--amber); }
+  .brand-edit-row input:focus{ border-color:var(--accent); }
   .brand-edit-row .row-btns{ display:flex; gap:6px; flex-wrap:wrap; }
   .brand-edit-row .btn{ padding:6px 10px; font-size:11.5px; }
 
@@ -86,34 +154,34 @@
   .nav-btn{ display:flex; align-items:center; gap:9px; text-align:left; padding:9px 10px; border-radius:8px;
     border:none; background:transparent; color:var(--muted); font-size:13px; font-weight:500; transition:.12s; }
   .nav-btn:hover{ background:var(--panel-2); color:var(--text); }
-  .nav-btn.active{ background:var(--panel-3); color:var(--amber-texto); font-weight:700; }
+  .nav-btn.active{ background:var(--accent-soft); color:var(--accent); font-weight:700; }
   .nav-btn .ic{ width:18px; height:18px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; }
   .nav-btn .ic svg{ width:100%; height:100%; }
 
   .years{ display:flex; gap:6px; flex-wrap:wrap; }
   .chip{ position:relative; flex:1; text-align:center; padding:7px 0; border-radius:8px; border:1px solid var(--border);
-    background:transparent; color:var(--muted); font-size:12px; font-weight:600; font-family:'IBM Plex Mono',monospace; transition:.15s; }
-  .chip:hover{ border-color:var(--amber); color:var(--text); }
-  .chip.active{ background:var(--amber); border-color:var(--amber); color:#1a1305; }
-  .chip.add{ border-style:dashed; flex:0 0 34px; font-family:'Inter'; font-size:15px; }
+    background:transparent; color:var(--muted); font-size:12px; font-weight:600; font-family:'JetBrains Mono',monospace; transition:.15s; }
+  .chip:hover{ border-color:var(--accent); color:var(--text); }
+  .chip.active{ background:var(--accent); border-color:var(--accent); color:#FFFFFF; }
+  .chip.add{ border-style:dashed; flex:0 0 34px; font-family:'Geist'; font-size:15px; }
   .chip .rm{ display:none; position:absolute; top:-6px; right:-6px; width:15px;height:15px; border-radius:50%;
     background:var(--coral); color:#fff; font-size:10px; line-height:15px; text-align:center; font-weight:700; }
   .chip.removable:hover .rm{ display:block; }
   .year-add-row{ display:none; gap:6px; margin-top:8px; }
   .year-add-row input{ flex:1; background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
-    padding:7px 8px; color:var(--text); font-size:12.5px; font-family:'IBM Plex Mono'; outline:none; min-width:0; }
-  .year-add-row input:focus{ border-color:var(--amber); }
+    padding:7px 8px; color:var(--text); font-size:12.5px; font-family:'JetBrains Mono'; outline:none; min-width:0; }
+  .year-add-row input:focus{ border-color:var(--accent); }
   .year-add-row .btn{ padding:7px 10px; font-size:12px; }
 
   .months{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
   .month-btn{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
     padding:9px 4px; border-radius:9px; border:1px solid var(--border); background:var(--panel-2);
     color:var(--muted); font-size:11.5px; font-weight:600; cursor:pointer; transition:.12s; }
-  .month-btn:hover{ border-color:var(--amber); color:var(--text); }
-  .month-btn.active{ background:var(--amber); border-color:var(--amber); color:#1a1305; }
+  .month-btn:hover{ border-color:var(--accent); color:var(--text); }
+  .month-btn.active{ background:var(--accent); border-color:var(--accent); color:#FFFFFF; }
   .month-btn .dot{ width:4px;height:4px;border-radius:50%; background:var(--teal); opacity:0; }
   .month-btn.has-data .dot{ opacity:1; }
-  .month-btn.active .dot{ background:#1a1305; opacity:.55; }
+  .month-btn.active .dot{ background:#FFFFFF; opacity:.7; }
 
   .sidebar-foot{ margin-top:auto; color:var(--muted); font-size:10.5px; padding:0 4px; line-height:1.5; }
 
@@ -121,7 +189,7 @@
   .main{ flex:1; padding:24px 28px 48px; max-width:1600px; margin:0 auto; min-width:0; }
   .topbar{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px; }
   .topbar h2{ font-size:20px; font-weight:700; }
-  .topbar .period{ color:var(--muted); font-size:13px; font-family:'IBM Plex Mono',monospace; }
+  .topbar .period{ color:var(--muted); font-size:13px; font-family:'JetBrains Mono',monospace; }
   /* Lançamentos precisa dizer duas coisas no canto: o mês que está sendo
      mostrado (igual às outras telas) e a dica da categorização, que é fixa.
      Empilhadas, a dica não disputa espaço com o mês em tela estreita. */
@@ -142,8 +210,8 @@
      participação ficam lado a lado. */
   .row-a, .row-b{ grid-template-columns:1.4fr 1fr; margin-bottom:16px; }
 
-  .card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px 20px; min-width:0; min-height:0; }
-  .card h3{ font-size:13px; color:var(--muted); font-weight:600; margin-bottom:12px; text-transform:uppercase; letter-spacing:.04em; }
+  .card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px 20px; min-width:0; min-height:0; box-shadow:var(--shadow-1); }
+  .card h3{ font-size:11px; color:var(--muted); font-weight:600; margin-bottom:12px; text-transform:uppercase; letter-spacing:.1em; font-family:'Geist',sans-serif; }
   .card + .card{ margin-top:16px; }
   /* ...mas não dentro de uma grade: ali o espaçamento é o `gap`, e esse
      margin-top empurrava para baixo todo card que não fosse o primeiro da
@@ -156,8 +224,8 @@
   .kpi-value{ font-size:26px; font-weight:600; }
   .kpi-value.pos{ color:var(--green); } .kpi-value.neg{ color:var(--coral); } .kpi-value.neutral{ color:var(--text); }
   .kpi-delta{ font-size:11.5px; font-weight:600; padding:2px 7px; border-radius:20px; }
-  .kpi-delta.up{ background:rgba(91,217,122,.15); color:var(--green); }
-  .kpi-delta.down{ background:rgba(232,99,107,.15); color:var(--coral); }
+  .kpi-delta.up{ background:color-mix(in srgb, var(--green) 14%, transparent); color:var(--green); }
+  .kpi-delta.down{ background:color-mix(in srgb, var(--coral) 14%, transparent); color:var(--coral); }
   .spark-box{ position:relative; height:36px; width:100%; flex-shrink:0; overflow:hidden; }
   .spark-box canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
 
@@ -165,18 +233,18 @@
   .donut-canvas-box{ position:relative; width:112px; height:112px; flex-shrink:0; overflow:hidden; }
   .donut-canvas-box canvas{ position:absolute; inset:0; width:100% !important; height:100% !important; }
   .donut-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
-  .donut-center b{ font-size:18px; font-family:'Sora'; } .donut-center span{ font-size:9px; color:var(--muted); text-align:center; line-height:1.2; margin-top:2px; max-width:66px; }
+  .donut-center b{ font-size:18px; font-family:'Fraunces'; } .donut-center span{ font-size:9px; color:var(--muted); text-align:center; line-height:1.2; margin-top:2px; max-width:66px; }
   .legend{ display:flex; flex-direction:column; gap:7px; font-size:12px; }
   .legend-item{ display:flex; align-items:center; gap:7px; color:var(--muted); }
   .legend-item .sw{ width:8px;height:8px;border-radius:2px; flex-shrink:0; }
-  .legend-item b{ color:var(--text); font-weight:600; margin-left:auto; font-family:'IBM Plex Mono'; }
+  .legend-item b{ color:var(--text); font-weight:600; margin-left:auto; font-family:'JetBrains Mono'; }
 
   .bar-list{ display:flex; flex-direction:column; gap:12px; }
   .bar-row{ display:grid; grid-template-columns:100px 1fr 78px; align-items:center; gap:10px; font-size:12.5px; }
   .bar-row .cat{ color:var(--muted); }
   .bar-track{ height:8px; border-radius:6px; background:var(--panel-2); overflow:hidden; }
   .bar-fill{ height:100%; border-radius:6px; }
-  .bar-row .val{ text-align:right; font-family:'IBM Plex Mono',monospace; font-size:12px; }
+  .bar-row .val{ text-align:right; font-family:'JetBrains Mono',monospace; font-size:12px; }
 
   /* auto-fit em vez de 6 colunas fixas: os anéis têm 54px cravados, então
      seis deles exigem 374px e o card da direita chega a ter 295px na faixa
@@ -192,7 +260,7 @@
   .ring{ display:flex; flex-direction:column; align-items:center; gap:8px; min-width:0; }
   .ring-circle{ width:100%; max-width:54px; aspect-ratio:1; border-radius:50%; display:flex; align-items:center; justify-content:center; position:relative; }
   .ring-circle::before{ content:""; position:absolute; inset:6px; border-radius:50%; background:var(--panel); }
-  .ring-circle b{ position:relative; font-size:11px; font-family:'IBM Plex Mono'; }
+  .ring-circle b{ position:relative; font-size:11px; font-family:'JetBrains Mono'; }
   /* nome de categoria é uma palavra só ("Assinaturas") e, numa coluna estreita,
      era ele que estourava a largura do anel — sem espaço, não tinha onde quebrar */
   .ring-name{ font-size:10px; color:var(--muted); text-align:center; overflow-wrap:anywhere; }
@@ -211,45 +279,57 @@
      ficava visivelmente mais gordo que os outros dentro do mesmo card. */
   .field input, .field select{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
     padding:8px 10px; color:var(--text); font-size:13px; outline:none; min-width:120px; height:34px; }
-  .field input:focus, .field select:focus{ border-color:var(--amber); }
+  .field input:focus, .field select:focus{ border-color:var(--accent); }
   .field textarea{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
-    padding:9px 10px; color:var(--text); font-size:12px; font-family:'IBM Plex Mono',monospace; outline:none; resize:vertical; width:100%; }
-  .field textarea:focus{ border-color:var(--amber); }
-  .btn{ background:var(--amber); color:#1a1305; border:none; border-radius:8px; padding:9px 16px; font-weight:700; font-size:13px; }
-  .btn:hover{ filter:brightness(1.08); }
-  .btn.secondary{ background:var(--panel-2); color:var(--text); border:1px solid var(--border); margin-right:8px; }
+    padding:9px 10px; color:var(--text); font-size:12px; font-family:'JetBrains Mono',monospace; outline:none; resize:vertical; width:100%; }
+  .field textarea:focus{ border-color:var(--accent); }
+  .btn{ background:var(--accent); color:#FFFFFF; border:none; border-radius:10px; padding:9px 16px; font-weight:600; font-size:13px; box-shadow:var(--shadow-1); }
+  .btn:hover{ background:var(--accent-hover); }
+  /* Secundário é botão de papel: branco, borda quente, sombra rasa. Precisa do
+     próprio hover — o hover do primário pinta o fundo de ultramarino, e a
+     regra de .btn.secondary vem depois, então sem isto o botão não daria
+     retorno nenhum ao passar o mouse. */
+  .btn.secondary{ background:var(--panel); color:var(--text); border:1px solid var(--border);
+    box-shadow:var(--shadow-1); margin-right:8px; }
+  .btn.secondary:hover{ background:var(--paper-100); border-color:var(--paper-400); }
+  :root[data-tema="escuro"] .btn.secondary:hover{ background:var(--panel-3); }
+  .btn.income-btn:hover{ background:var(--green); filter:brightness(1.1); }
+  .btn.expense-btn:hover{ background:var(--coral); filter:brightness(1.1); }
   .btn.danger-ghost{ background:transparent; color:var(--coral); border:1px solid transparent; padding:4px 8px; font-size:15px; border-radius:6px; }
-  .btn.danger-ghost:hover{ background:rgba(232,99,107,.12); }
+  .btn.danger-ghost:hover{ background:color-mix(in srgb, var(--coral) 12%, transparent); }
   /* Caixa do código da família, em Config → Membros. O código costuma ser ditado
      por telefone e digitado à mão do outro lado, então precisa ser lido letra por
      letra: monoespaçado, espaçado, e selecionável de uma tocada só. */
   .codigo-box{ display:flex; align-items:center; gap:10px; background:var(--panel-2);
     border:1px solid var(--border); border-radius:8px; padding:9px 12px; }
-  .codigo-box .valor{ flex:1; font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600;
-    color:var(--amber-texto); letter-spacing:.06em; user-select:all; word-break:break-all; }
+  .codigo-box .valor{ flex:1; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:600;
+    color:var(--accent); letter-spacing:.06em; user-select:all; word-break:break-all; }
 
   .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -4px; padding:0 4px; }
   table.data{ width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
-  table.data th{ text-align:left; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.04em;
-    font-weight:600; padding:8px 10px; border-bottom:1px solid var(--border); }
-  table.data td{ padding:9px 10px; border-bottom:1px solid var(--panel-2); }
-  table.data tr:hover td{ background:var(--panel-2); }
+  table.data th{ text-align:left; color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.1em;
+    font-weight:600; padding:9px 10px; border-bottom:1px solid var(--border);
+    background:var(--panel); position:sticky; top:0; z-index:1; }
+  /* Tracejado, e não linha cheia: separa a leitura sem fatiar a tabela — o olho
+     atravessa a linha e continua na mesma varredura. */
+  table.data td{ padding:9px 10px; border-bottom:1px dashed var(--border); }
+  table.data tr:hover td{ background:var(--paper-100); }
   .pill{ display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600; }
-  .pill.receita{ background:rgba(91,217,122,.15); color:var(--green); }
-  .pill.despesa{ background:rgba(232,99,107,.15); color:var(--coral); }
+  .pill.receita{ background:color-mix(in srgb, var(--green) 14%, transparent); color:var(--green); }
+  .pill.despesa{ background:color-mix(in srgb, var(--coral) 14%, transparent); color:var(--coral); }
   .badge-cat{ display:inline-flex; align-items:center; gap:6px; }
   .badge-cat .sw{ width:7px;height:7px;border-radius:2px; }
 
-  .orc-row{ display:grid; grid-template-columns:1fr 130px 1fr 90px 110px; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
+  .orc-row{ display:grid; grid-template-columns:1fr 130px 1fr 90px 110px; align-items:center; gap:12px; padding:10px 0; border-bottom:1px dashed var(--border); }
   .orc-row .status{ font-size:12px; font-weight:700; text-align:right; }
   .mobile-label{ display:none; }
   /* Mesma história da altura fixa dos .field: na linha de edição do lançamento
      o campo de data e o select ficavam 2px mais altos que os de texto ao lado. */
   .orc-input{ background:var(--panel-2); border:1px solid var(--border); border-radius:7px; color:var(--text);
-    padding:6px 8px; font-size:13px; width:100%; font-family:'IBM Plex Mono'; height:31px; }
+    padding:6px 8px; font-size:13px; width:100%; font-family:'JetBrains Mono'; height:31px; }
   input[type=date].orc-input{ background-position:right 8px center; }
 
-  .cf-row{ display:grid; grid-template-columns:1.2fr 1fr 70px 110px 1.5fr; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--panel-2); }
+  .cf-row{ display:grid; grid-template-columns:1.2fr 1fr 70px 110px 1.5fr; align-items:center; gap:12px; padding:10px 0; border-bottom:1px dashed var(--border); }
   .cf-row .status{ font-size:12px; font-weight:700; text-align:right; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
 
   /* Painel de faturas: fala do dia de hoje, não do mês que a pessoa navega —
@@ -267,7 +347,7 @@
   .fat-datas b{ color:var(--text); font-weight:600; }
   .fat-linha{ display:flex; justify-content:space-between; align-items:center; gap:10px;
     font-size:12px; padding:9px 11px; border-radius:9px; background:var(--panel-2); }
-  .fat-linha.urgente{ background:rgba(232,99,107,.15); }
+  .fat-linha.urgente{ background:color-mix(in srgb, var(--coral) 12%, transparent); }
   .fat-linha .rot{ color:var(--muted); font-weight:600; }
   .fat-acao{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
   .fat-linha.urgente .rot{ color:var(--coral); }
@@ -276,7 +356,7 @@
   .fat-item{ display:flex; justify-content:space-between; gap:10px; padding:3px 0; color:var(--muted); }
   .fat-item b{ color:var(--text); font-weight:500; }
   .fat-toggle{ background:none; border:none; padding:0; font-size:11.5px; font-weight:600;
-    color:var(--amber-texto); text-align:left; }
+    color:var(--accent); text-align:left; }
   /* Os totais em texto não são enfeite: no tema claro as cores da paleta ficam
      abaixo de 3:1 contra o branco, então o valor precisa estar legível fora da
      barra. Também é o que garante que a identidade do cartão nunca dependa só
@@ -286,11 +366,11 @@
   .pager-info{ font-size:12px; color:var(--muted); }
   .pager-info b{ color:var(--text); font-weight:600; }
   .pager-btns{ display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
-  .pager-btn{ min-width:30px; padding:5px 8px; border-radius:7px; border:1px solid var(--border);
+  .pager-btn{ min-width:32px; height:32px; padding:0 12px; border-radius:10px; border:1px solid var(--border); box-shadow:var(--shadow-1);
     background:var(--panel-2); color:var(--muted); font-size:12px; font-weight:600;
-    font-family:'IBM Plex Mono',monospace; transition:.12s; }
+    font-family:'JetBrains Mono',monospace; transition:.12s; }
   .pager-btn:hover:not(:disabled){ background:var(--panel-3); color:var(--text); }
-  .pager-btn.active{ background:var(--amber); border-color:var(--amber); color:#241A05; }
+  .pager-btn.active{ background:var(--accent); border-color:var(--accent); color:#FFFFFF; }
   .pager-btn:disabled{ opacity:.35; }
   .pager-gap{ color:var(--muted); font-size:12px; padding:0 2px; }
 
@@ -416,8 +496,7 @@
 
   #dialogo{ position:fixed; inset:0; z-index:9990; padding:20px;
     display:flex; align-items:center; justify-content:center;
-    background:rgba(6,9,20,.62); animation:dialogo-fundo .16s ease-out; }
-  :root[data-tema="claro"] #dialogo{ background:rgba(20,27,51,.42); }
+    background:rgba(31,29,26,.45); animation:dialogo-fundo .16s ease-out; }
   #dialogo.hidden{ display:none; }
   .dialogo-card{ width:100%; max-width:400px; background:var(--panel); border:1px solid var(--border);
     border-radius:16px; padding:22px 22px 18px; box-shadow:0 18px 50px var(--sombra);
@@ -435,7 +514,7 @@
   .dialogo-msg{ font-size:13.5px; line-height:1.5; color:var(--text); }
   .dialogo-det{ color:var(--muted); font-size:12.5px; line-height:1.5; margin-top:8px; }
   /* o código da família precisa ser lido letra por letra e ditado para alguém */
-  .dialogo-codigo{ font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:600;
+  .dialogo-codigo{ font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:600;
     color:var(--amber-texto); background:var(--panel-2); border:1px solid var(--border);
     border-radius:8px; padding:8px 12px; margin:12px 0 4px; text-align:center; letter-spacing:.08em;
     user-select:all; }
@@ -494,8 +573,8 @@
   input[type=date]::-webkit-calendar-picker-indicator{ opacity:0; margin:0; padding:0; width:18px; flex:0 0 auto; }
   /* A cor do traço vai cravada porque var() não funciona dentro de url() —
      são os mesmos --muted de cada tema (#8C93B8 no escuro, #5F6789 no claro). */
-  :root[data-tema="escuro"] input[type=date]{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238C93B8' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5.5' width='17' height='15' rx='2.5'/%3E%3Cpath d='M8 3.5v4M16 3.5v4M3.5 10.5h17'/%3E%3C/svg%3E"); }
-  :root[data-tema="claro"] input[type=date]{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235F6789' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5.5' width='17' height='15' rx='2.5'/%3E%3Cpath d='M8 3.5v4M16 3.5v4M3.5 10.5h17'/%3E%3C/svg%3E"); }
+  :root[data-tema="escuro"] input[type=date]{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A69E8E' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5.5' width='17' height='15' rx='2.5'/%3E%3Cpath d='M8 3.5v4M16 3.5v4M3.5 10.5h17'/%3E%3C/svg%3E"); }
+  :root[data-tema="claro"] input[type=date]{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235C574D' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5.5' width='17' height='15' rx='2.5'/%3E%3Cpath d='M8 3.5v4M16 3.5v4M3.5 10.5h17'/%3E%3C/svg%3E"); }
   .field{ overflow:hidden; }
 
   /* Nenhuma barra de rolagem visível em lugar nenhum do app — incluindo a da
@@ -524,21 +603,16 @@
   .entry-card .form-row{ margin-bottom:0; }
   .entry-card .field{ flex:1; min-width:130px; }
   .entry-card .field:has(input[type=date]){ min-width:175px; }
-  .btn.income-btn{ background:var(--green); color:#0a2412; }
-  .btn.expense-btn{ background:var(--coral); color:#2a0b0d; }
-  /* No claro o coral escurece para servir de texto, e aí o rótulo quase preto
-     do botão de despesa perde contraste — nesse caso o branco é que lê bem.
-     O de receita continua com texto escuro, que sobre o verde lê melhor. */
-  :root[data-tema="claro"] .btn.expense-btn{ color:#FFFFFF; }
-  /* O fundo destas etiquetas é um verde translúcido que, sobre branco, vira
-     quase o mesmo tom do texto — 3.1:1 em letra de 11px. Só aqui o verde
-     escurece mais; usar este tom no --green estragaria o botão de receita,
-     que precisa do verde mais claro para o rótulo escuro dele funcionar. */
-  :root[data-tema="claro"] .pill.receita, :root[data-tema="claro"] .kpi-delta.up{ color:#1B7038; }
-  /* Mesmo problema no escuro, do outro lado: o coral sobre o proprio coral a
-     15% dava 4.23 em letra de 11px. Clareado só aqui — mudar o --coral mexeria
-     em valores, botoes e series de grafico sem necessidade. */
-  :root[data-tema="escuro"] .pill.despesa, :root[data-tema="escuro"] .kpi-delta.down{ color:#EE7B82; }
+  /* O verde-amazônico e o vermelho-tijolo são escuros o bastante para aguentar
+     texto branco por cima E para servir de texto sobre creme. Isso apagou três
+     remendos que existiam antes, quando o verde e o coral claros só serviam a
+     um dos dois papéis e cada tema precisava de uma exceção. */
+  .btn.income-btn{ background:var(--green); color:#FFFFFF; }
+  .btn.expense-btn{ background:var(--coral); color:#FFFFFF; }
+  /* No escuro a lógica se inverte: lá os dois tons são claros para se
+     sustentarem sobre tinta, e aí o rótulo branco é que some. */
+  :root[data-tema="escuro"] .btn.income-btn{ color:#10281B; }
+  :root[data-tema="escuro"] .btn.expense-btn{ color:#2E100B; }
 
   /* CONFIG — os cards vinham com largura, título e espaçamento cada um de um
      jeito: dois com 420px, um com 460px, um sem título nenhum e só um com
@@ -581,7 +655,7 @@
   .ajuda li{ font-size:13.5px; line-height:1.6; margin-bottom:6px; }
   .ajuda li:last-child{ margin-bottom:0; }
   .ajuda .card{ scroll-margin-top:18px; }
-  .ajuda code{ font-family:'IBM Plex Mono',monospace; font-size:12.5px;
+  .ajuda code{ font-family:'JetBrains Mono',monospace; font-size:12.5px;
     background:var(--panel-2); border:1px solid var(--border); border-radius:5px; padding:1px 6px; }
 
   .ajuda-passos{ counter-reset:passo; list-style:none; padding:0; margin:0; }
@@ -589,7 +663,7 @@
   .ajuda-passos li::before{ content:counter(passo); position:absolute; left:0; top:0;
     width:23px; height:23px; border-radius:50%; background:var(--panel-3);
     color:var(--amber-texto); border:1px solid var(--amber);
-    font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:700;
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700;
     display:flex; align-items:center; justify-content:center; }
 
   /* A camada de baixo: quem já entende de finanças passa direto, quem não
@@ -624,7 +698,7 @@
     }
     .mobile-topbar .hamburger{ background:transparent; border:1px solid var(--border); border-radius:8px;
       width:40px; height:40px; color:var(--text); font-size:18px; flex-shrink:0; }
-    .mobile-topbar .mt-title{ font-family:'Sora'; font-weight:700; font-size:15px; }
+    .mobile-topbar .mt-title{ font-family:'Fraunces'; font-weight:700; font-size:15px; }
 
     .app{ flex-direction:column; }
     .sidebar{
@@ -724,19 +798,19 @@
    seu não pode mudar o da Mariana. */
 var TEMA_KEY = 'painel_financeiro_tema_v1';
 function temaPreferido(){
-  try{ var t = localStorage.getItem(TEMA_KEY); return (t==='claro'||t==='escuro'||t==='auto') ? t : 'escuro'; }
-  catch(e){ return 'escuro'; }
+  try{ var t = localStorage.getItem(TEMA_KEY); return (t==='claro'||t==='escuro'||t==='auto') ? t : 'claro'; }
+  catch(e){ return 'claro'; }
 }
 function temaEfetivo(pref){
   if(pref!=='auto') return pref;
-  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'claro' : 'escuro';
+  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'escuro' : 'claro';
 }
 function aplicarTema(){
   var efetivo = temaEfetivo(temaPreferido());
   document.documentElement.dataset.tema = efetivo;
   /* a barra do navegador no celular acompanha o tema */
   var meta = document.querySelector('meta[name="theme-color"]');
-  if(meta) meta.setAttribute('content', efetivo==='claro' ? '#F4F6FB' : '#0D1326');
+  if(meta) meta.setAttribute('content', efetivo==='claro' ? '#FAF6EE' : '#141310');
   return efetivo;
 }
 aplicarTema();
@@ -1313,7 +1387,7 @@ aplicarTema();
 
 <script>
 const STORAGE_KEY = 'painel_financeiro_db_v1';
-const CAT_PALETTE = ["#E8A33D","#3FC1C9","#7C83FD","#E8636B","#B47EE5","#5BD97A","#F2C14E","#FF8FB1","#4FA8E0","#C98F5E","#8C93B8","#6FE3D0","#F28C4E"];
+const CAT_PALETTE = ["#322C85","#C08A1E","#1D7A4C","#A8382B","#1C7F86","#7B4BC4","#2C6FA8","#B5642A","#5C574D","#3F7D5C","#8A4C7D","#5A61E8","#8A6410"];
 function colorFor(cat){
   const cats = allCategoryNames();
   const idx = cats.indexOf(cat);
@@ -2421,8 +2495,8 @@ function renderPainel(){
       plugins:{ legend:{position:'top', align:'end', labels:{color:corVar('--muted'), usePointStyle:true, boxWidth:6, font:{size:11.5}}},
         tooltip:{backgroundColor:corVar('--panel-2'), borderColor:corVar('--border'), borderWidth:1, titleColor:corVar('--text'), bodyColor:corVar('--text'),
           callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`}} },
-      scales:{ x:{grid:{display:false}, ticks:{color:corVar('--muted'), font:{family:'IBM Plex Mono', size:10.5}}},
-        y:{grid:{color:corVar('--grid-linha')}, ticks:{color:corVar('--muted'), font:{family:'IBM Plex Mono', size:10.5}, callback:v=>'R$'+(v/1000)+'k'}} } } });
+      scales:{ x:{grid:{display:false}, ticks:{color:corVar('--muted'), font:{family:'JetBrains Mono', size:10.5}}},
+        y:{grid:{color:corVar('--grid-linha')}, ticks:{color:corVar('--muted'), font:{family:'JetBrains Mono', size:10.5}, callback:v=>'R$'+(v/1000)+'k'}} } } });
 
   destroy('barAnalise');
   charts['barAnalise'] = new Chart(document.getElementById('barAnalise'), { type:'bar',
@@ -2432,8 +2506,8 @@ function renderPainel(){
     ]},
     options:{ responsive:true, maintainAspectRatio:false, animation:false,
       plugins:{ legend:{position:'top', align:'end', labels:{color:corVar('--muted'), usePointStyle:true, boxWidth:6, font:{size:11.5}}} },
-      scales:{ x:{grid:{display:false}, ticks:{color:corVar('--muted'), font:{family:'IBM Plex Mono', size:10.5}}},
-        y:{grid:{color:corVar('--grid-linha')}, ticks:{color:corVar('--muted'), font:{family:'IBM Plex Mono', size:10.5}, callback:v=>'R$'+(v/1000)+'k'}} } } });
+      scales:{ x:{grid:{display:false}, ticks:{color:corVar('--muted'), font:{family:'JetBrains Mono', size:10.5}}},
+        y:{grid:{color:corVar('--grid-linha')}, ticks:{color:corVar('--muted'), font:{family:'JetBrains Mono', size:10.5}, callback:v=>'R$'+(v/1000)+'k'}} } } });
 }
 
 let lancFilter = 'todos';
@@ -3455,9 +3529,9 @@ function renderFaturaChart(){
       },
       scales:{
         x:{ stacked:true, grid:{display:false},
-          ticks:{ color:corVar('--muted'), font:{family:'IBM Plex Mono', size:10.5} } },
+          ticks:{ color:corVar('--muted'), font:{family:'JetBrains Mono', size:10.5} } },
         y:{ stacked:true, beginAtZero:true, grid:{ color:corVar('--grid-linha') },
-          ticks:{ color:corVar('--muted'), font:{family:'IBM Plex Mono', size:10.5},
+          ticks:{ color:corVar('--muted'), font:{family:'JetBrains Mono', size:10.5},
             callback:v=>'R$'+(v/1000)+'k' } }
       }
     }
@@ -4275,7 +4349,7 @@ function setupLoginUI(auth){
 function initApp(){
   try{
     Chart.defaults.resizeDelay = 100;
-    Chart.defaults.font.family = "'Inter'";
+    Chart.defaults.font.family = "'Geist'";
 
     const fbApp = firebase.apps && firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(syncCfg.firebaseConfig);
     const auth = firebase.auth(fbApp);
