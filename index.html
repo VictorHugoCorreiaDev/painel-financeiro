@@ -1309,6 +1309,18 @@ aplicarTema();
     <section class="view" id="view-orcamento">
       <div class="topbar"><h2>Orçamento por Categoria</h2><div class="period" id="periodLabelOrc">—</div></div>
       <div class="card">
+        <div class="card-desc">
+          Um teto de gasto mensal por categoria, e quanto dele já foi usado no mês escolhido no topo. Para mudar um teto, clique no valor da coluna <b>Orçado</b> e digite por cima — salva sozinho, sem botão.
+          <details class="desc-mais" open>
+            <summary>Como funciona</summary>
+            <ul>
+              <li><b>O sinal é por faixa:</b> 🟢 OK abaixo de 85% do teto, 🟡 Atenção de 85% até o teto, 🔴 Estourou quando passa dele. Categoria sem teto aparece com "—" — a lista traz todas as categorias do app, não só as orçadas.</li>
+              <li><b>O "gasto real" entra por dois caminhos:</b> a despesa cai naquela categoria pela categorização automática, ou o nome da categoria aparece no campo <b>Conta</b> do lançamento. O segundo é a saída para quando a descrição não tem palavra-chave nenhuma que sirva.</li>
+              <li><b>Compra no cartão conta no mês da fatura</b>, igual ao resto do app: uma compra de dezembro no cartão pesa no orçamento de janeiro, não no de dezembro.</li>
+              <li><b>Categoria criada aqui vira categoria de despesa no app inteiro</b> — ela passa a ser oferecida ao lançar um gasto e ao cadastrar uma conta fixa. Do lado da receita não aparece, porque orçamento é sobre gasto.</li>
+            </ul>
+          </details>
+        </div>
         <div class="form-row">
           <div class="field" style="min-width:200px;"><label>Nova categoria de orçamento</label><input type="text" id="fOrcCat" placeholder="Ex: Academia"></div>
           <div class="field"><label>Orçamento mensal (R$)</label><input type="text" inputmode="decimal" id="fOrcVal" placeholder="150,00"></div>
