@@ -348,7 +348,15 @@
   .btn:hover{ background:var(--accent-hover); }
   /* No escuro o ultramarino precisa subir de tom para se sustentar sobre tinta,
      e aí o rótulo branco cai para 2.7:1 — abaixo de legível. Sobre acento
-     claro quem lê é a tinta. */
+     claro quem lê é a tinta.
+
+     ⚠️ ARMADILHA: esta regra é 0-3-0 e atropela QUALQUER `.btn.variante{color}`,
+     que é 0-2-0. Toda variante de `.btn` com superfície própria precisa do seu
+     próprio par `:root[data-tema="escuro"] .btn.variante` (0-4-0) para não sair
+     com a tinta quase-preta em cima de fundo escuro. Já mordeu duas vezes: o
+     antigo botão de ícone (virou `.icon-btn`, fora de `.btn`) e o `.secondary`
+     logo abaixo. `.perigo` fica de fora de propósito — o fundo dele é coral
+     claro no escuro, e ali a tinta escura é justamente o que se lê. */
   :root[data-tema="escuro"] .btn{ color:#16142B; }
   /* Secundário é botão de papel: branco, borda quente, sombra rasa. Precisa do
      próprio hover — o hover do primário pinta o fundo de ultramarino, e a
@@ -356,6 +364,11 @@
      retorno nenhum ao passar o mouse. */
   .btn.secondary{ background:var(--panel); color:var(--text); border:1px solid var(--border);
     box-shadow:var(--shadow-1); margin-right:8px; }
+  /* A superfície do secundário é o papel do card, não o acento — então quem lê
+     aqui é o texto normal, nos dois temas. Sem esta linha ele caía na regra
+     acima e ficava com 1,06:1 no escuro: "Sair", "Exportar/Importar JSON" e
+     "Copiar", em Configurações, sumiam. Mesmo remédio que income/expense usam. */
+  :root[data-tema="escuro"] .btn.secondary{ color:var(--text); }
   .btn.secondary:hover{ background:var(--superficie-hover); border-color:var(--borda-forte); }
   .btn.income-btn:hover{ background:var(--green); filter:brightness(1.1); }
   .btn.expense-btn:hover{ background:var(--coral); filter:brightness(1.1); }
