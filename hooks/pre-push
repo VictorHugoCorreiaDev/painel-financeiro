@@ -1,0 +1,68 @@
+#!/bin/sh
+#
+# Lembra de trocar CACHE_VERSION no sw.js quando index.html muda.
+#
+# ESTE DIRETORIO SO VALE COM UMA CONFIG LOCAL. Num clone novo, rode:
+#
+#     git config core.hooksPath hooks
+#
+# O arquivo do hook e versionado; o apontamento para ele nao e -- git nao
+# executa hook vindo do repo sem alguem pedir, senao um `git clone` de um repo
+# qualquer rodaria codigo de estranho na sua maquina. Sem essa config o git
+# procura em .git/hooks, nao acha nada, e o push passa direto.
+#
+# Por que no pre-push e nao no pre-commit: o que importa e o que chega no
+# GitHub Pages. Da para commitar o index.html num commit e o bump do sw.js no
+# seguinte -- os dois sobem juntos, e nao ha nada a avisar. Checando no push, a
+# pergunta e a certa: "o que estou publicando agora muda a pagina sem renovar a
+# copia offline?"
+#
+# Ele BLOQUEIA de proposito. Aviso que so imprime some no meio da saida do push,
+# e o motivo de existir um lembrete e justamente que a pessoa esqueceu. A saida
+# de emergencia esta na mensagem.
+
+versao_em() {
+  # imprime o CACHE_VERSION do sw.js num dado commit; vazio se nao existir
+  git show "$1:sw.js" 2>/dev/null | sed -n "s/^const CACHE_VERSION = '\(.*\)';/\1/p"
+}
+
+vazio='0000000000000000000000000000000000000000'
+
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [ "$local_sha" = "$vazio" ] && continue          # branch sendo apagada
+
+  if [ "$remote_sha" = "$vazio" ]; then
+    # branch nova no remoto: nao ha base de comparacao, deixa passar
+    continue
+  fi
+
+  # o index.html mudou no que esta sendo publicado?
+  if ! git diff --name-only "$remote_sha" "$local_sha" | grep -q '^index\.html$'; then
+    continue
+  fi
+
+  antes=$(versao_em "$remote_sha")
+  agora=$(versao_em "$local_sha")
+
+  if [ -n "$antes" ] && [ "$antes" = "$agora" ]; then
+    echo ""
+    echo "  index.html mudou, mas CACHE_VERSION do sw.js continua em '$agora'."
+    echo ""
+    echo "  Sem o bump, quem abrir o app SEM internet continua vendo a copia"
+    echo "  antiga -- o navegador so reinstala o service worker quando o proprio"
+    echo "  sw.js muda. Quem estiver online nao percebe nada (network-first)."
+    echo ""
+    echo "  Para resolver, troque a data em sw.js:"
+    echo ""
+    echo "      const CACHE_VERSION = '$(date +%Y-%m-%d)';"
+    echo ""
+    echo "  e commite antes de subir. Se este push nao mexe no que a pessoa ve"
+    echo "  (so comentario, so README), publique assim mesmo com:"
+    echo ""
+    echo "      git push --no-verify"
+    echo ""
+    exit 1
+  fi
+done
+
+exit 0

@@ -1,0 +1,6 @@
+# Hook de git e script de shell: precisa de LF mesmo no Windows.
+# Com core.autocrlf=true (o caso desta maquina), o checkout entregaria CRLF e o
+# `sh` engasgaria no \r — em Linux e Mac o erro e o classico
+# "bad interpreter: /bin/sh^M". Como o hook so existe para ser executado num
+# clone qualquer, ele nao pode depender da configuracao de quem clonou.
+hooks/pre-push text eol=lf
