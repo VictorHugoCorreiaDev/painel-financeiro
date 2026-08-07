@@ -21,6 +21,17 @@
 # e o motivo de existir um lembrete e justamente que a pessoa esqueceu. A saida
 # de emergencia esta na mensagem.
 
+# As duas linhas abaixo existem por causa de um furo real, pego no teste:
+# `git push 2>&1 | head -4` fazia o `head` fechar o pipe no meio da mensagem, o
+# echo seguinte levava SIGPIPE, o hook morria ANTES do `exit 1` -- e o push
+# passava. Um hook que so bloqueia quando ninguem canaliza a saida nao bloqueia.
+#
+#   - trap '' PIPE: escrita em pipe fechado vira erro comum, nao morte do script,
+#     entao o fluxo chega no `exit 1`.
+#   - mensagem em stderr (o >&2 la embaixo): e onde diagnostico de hook deve
+#     sair, e `git push | head`, sem o 2>&1, nem toca nela.
+trap '' PIPE
+
 versao_em() {
   # imprime o CACHE_VERSION do sw.js num dado commit; vazio se nao existir
   git show "$1:sw.js" 2>/dev/null | sed -n "s/^const CACHE_VERSION = '\(.*\)';/\1/p"
@@ -45,22 +56,24 @@ while read -r _local_ref local_sha _remote_ref remote_sha; do
   agora=$(versao_em "$local_sha")
 
   if [ -n "$antes" ] && [ "$antes" = "$agora" ]; then
-    echo ""
-    echo "  index.html mudou, mas CACHE_VERSION do sw.js continua em '$agora'."
-    echo ""
-    echo "  Sem o bump, quem abrir o app SEM internet continua vendo a copia"
-    echo "  antiga -- o navegador so reinstala o service worker quando o proprio"
-    echo "  sw.js muda. Quem estiver online nao percebe nada (network-first)."
-    echo ""
-    echo "  Para resolver, troque a data em sw.js:"
-    echo ""
-    echo "      const CACHE_VERSION = '$(date +%Y-%m-%d)';"
-    echo ""
-    echo "  e commite antes de subir. Se este push nao mexe no que a pessoa ve"
-    echo "  (so comentario, so README), publique assim mesmo com:"
-    echo ""
-    echo "      git push --no-verify"
-    echo ""
+    {
+      echo ""
+      echo "  index.html mudou, mas CACHE_VERSION do sw.js continua em '$agora'."
+      echo ""
+      echo "  Sem o bump, quem abrir o app SEM internet continua vendo a copia"
+      echo "  antiga -- o navegador so reinstala o service worker quando o proprio"
+      echo "  sw.js muda. Quem estiver online nao percebe nada (network-first)."
+      echo ""
+      echo "  Para resolver, troque a data em sw.js:"
+      echo ""
+      echo "      const CACHE_VERSION = '$(date +%Y-%m-%d)';"
+      echo ""
+      echo "  e commite antes de subir. Se este push nao mexe no que a pessoa ve"
+      echo "  (so comentario, so README), publique assim mesmo com:"
+      echo ""
+      echo "      git push --no-verify"
+      echo ""
+    } >&2
     exit 1
   fi
 done
