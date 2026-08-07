@@ -15,7 +15,7 @@
    Data e não v1/v2/v3 porque diz sozinha de quando é a cópia offline de alguém
    — na hora de investigar "o app do celular está diferente", esse é o dado que
    se quer. */
-const CACHE_VERSION = '2026-08-07';
+const CACHE_VERSION = '2026-08-07b';
 const CACHE_NAME = 'painel-financeiro-' + CACHE_VERSION;
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 

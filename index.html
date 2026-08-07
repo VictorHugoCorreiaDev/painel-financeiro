@@ -1192,6 +1192,19 @@ aplicarTema();
     <section class="view" id="view-painel">
       <div class="topbar"><h2>Visão Geral</h2><div class="period" id="periodLabel">—</div></div>
 
+      <div class="card-desc">
+        O resumo do mês escolhido no topo. Aqui nada se cadastra: tudo que aparece é calculado a partir dos seus lançamentos, contas fixas e cartões.
+        <details class="desc-mais">
+          <summary>Como funciona</summary>
+          <ul>
+            <li><b>O saldo é tudo que entrou menos tudo que saiu</b> no mês. Compra no cartão pesa no mês em que <b>a fatura vence</b>, não no da compra — é por isso que uma semana de compras pode aparecer repartida em dois meses.</li>
+            <li><b>O ▲▼ ao lado do número compara com o mês anterior</b>, e o risquinho embaixo é a linha dos últimos seis meses. Em janeiro o ▲▼ não aparece: não há mês anterior dentro do ano para comparar.</li>
+            <li><b>"Contas fixas a pagar" ainda NÃO está em "Despesas do mês".</b> Conta fixa pendente não é lançamento — ela só vira um quando você marca como paga. O card diz em quanto o saldo fica se você pagar todas, e separa o que é debitado no cartão, que não muda o saldo de agora porque só vira despesa quando a fatura vencer.</li>
+            <li><b>Dois cards dependem de você ter cadastrado algo:</b> a meta de economia sai de Config → Preferências, e o de contas fixas a pagar só aparece se houver contas fixas cadastradas.</li>
+          </ul>
+        </details>
+      </div>
+
       <div class="grid kpis">
         <div class="card kpi">
           <div class="kpi-top"><div class="kpi-label">Saldo do mês</div><div class="kpi-delta" id="saldoDelta"></div></div>
@@ -1564,8 +1577,12 @@ aplicarTema();
          pior que explicação nenhuma: uma das duas envelhece sem ninguém notar,
          e não dá para saber qual das duas está mentindo. Ficou aqui só o que não
          pertence a nenhuma tela: o roteiro de quem está começando, o seletor de
-         período (que é da barra lateral), o Painel (que não tem bloco por ser a
-         primeira tela que se vê), os conceitos de finanças e as dúvidas. -->
+         período (que é da barra lateral), os conceitos de finanças e as dúvidas.
+
+         A regra vale daqui para a frente: tela que ganhar "Como funciona" perde
+         a seção correspondente aqui, e os `.conceito` que estiverem dentro dela
+         mudam para o card de conceitos em vez de sumir junto. Foi assim com as
+         seis primeiras telas e depois com o Painel. -->
     <section class="view ajuda" id="view-ajuda">
       <div class="topbar"><h2>Como usar o Kofre+</h2><div class="period">O que não cabe em nenhuma tela</div></div>
 
@@ -1574,7 +1591,6 @@ aplicarTema();
         <div class="filter-tabs" style="margin:0;">
           <button class="filter-tab" onclick="irParaAjuda('aj-passos')">Primeiros passos</button>
           <button class="filter-tab" onclick="irParaAjuda('aj-periodo')">Ano e mês</button>
-          <button class="filter-tab" onclick="irParaAjuda('aj-painel')">Painel</button>
           <button class="filter-tab" onclick="irParaAjuda('aj-conceitos')">Conceitos</button>
           <button class="filter-tab" onclick="irParaAjuda('aj-config')">Config</button>
           <button class="filter-tab" onclick="irParaAjuda('aj-duvidas')">Dúvidas</button>
@@ -1599,21 +1615,6 @@ aplicarTema();
         <p>No celular, essa barra fica escondida — toque em <b>Mais</b>, no canto direito da barra de baixo, para abri-la.</p>
       </div>
 
-      <div class="card" id="aj-painel">
-        <h3>Painel</h3>
-        <p>É a tela de resumo, só de leitura: nada se cadastra aqui. Ela responde "como foi o mês".</p>
-        <ul>
-          <li><b>Saldo, Receitas e Despesas do mês</b> — os três cartões do topo. O número pequeno ao lado do título é a variação em relação ao mês anterior, e o risco embaixo é a evolução ao longo do ano.</li>
-          <li><b>Meta de economia</b> — compara o saldo do mês com a meta que você definiu em Config → Preferências. Sem meta definida, o cartão não tem o que comparar.</li>
-          <li><b>Contas fixas a pagar</b> — quanto ainda falta pagar das contas fixas deste mês. Só aparece se você tiver contas fixas cadastradas.</li>
-          <li><b>Gráficos</b> — receitas contra despesas ao longo do ano, participação de cada categoria no gasto (no mês e no ano), detalhamento do mês e a evolução anual.</li>
-        </ul>
-        <details class="conceito">
-          <summary>O que exatamente é o "saldo do mês"?</summary>
-          <div class="corpo"><p>É tudo que entrou menos tudo que saiu naquele mês. Positivo significa que sobrou dinheiro; negativo, que você gastou mais do que recebeu. Uma coisa importante: uma compra no cartão não conta no mês em que você comprou, e sim no mês em que a fatura vence — porque é aí que o dinheiro sai da conta de verdade.</p></div>
-        </details>
-      </div>
-
       <!-- O "como funciona" de cada tela mora na própria tela, no bloco recolhível
            embaixo do título. O que sobrou aqui são os conceitos: não é o app que
            está sendo explicado, é a ideia de finanças por trás dele, e essa não
@@ -1622,6 +1623,10 @@ aplicarTema();
       <div class="card" id="aj-conceitos">
         <h3>Se algum termo travar</h3>
         <p>Cada tela explica o próprio funcionamento no <b>Como funciona</b>, logo abaixo do título dela. Aqui ficam as ideias que valem para qualquer app de finanças, não só para este.</p>
+        <details class="conceito">
+          <summary>O que exatamente é o "saldo do mês"?</summary>
+          <div class="corpo"><p>É tudo que entrou menos tudo que saiu naquele mês. Positivo significa que sobrou dinheiro; negativo, que você gastou mais do que recebeu. Uma coisa importante: uma compra no cartão não conta no mês em que você comprou, e sim no mês em que a fatura vence — porque é aí que o dinheiro sai da conta de verdade.</p></div>
+        </details>
         <details class="conceito">
           <summary>Fechamento e vencimento não são a mesma coisa?</summary>
           <div class="corpo">
