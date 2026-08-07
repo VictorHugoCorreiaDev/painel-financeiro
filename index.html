@@ -865,8 +865,6 @@
   .ajuda li{ font-size:13.5px; line-height:1.6; margin-bottom:6px; }
   .ajuda li:last-child{ margin-bottom:0; }
   .ajuda .card{ scroll-margin-top:18px; }
-  .ajuda code{ font-family:'JetBrains Mono',monospace; font-size:12.5px;
-    background:var(--panel-2); border:1px solid var(--border); border-radius:5px; padding:1px 6px; }
 
   .ajuda-passos{ counter-reset:passo; list-style:none; padding:0; margin:0; }
   .ajuda-passos li{ counter-increment:passo; position:relative; padding-left:34px; margin-bottom:13px; }
@@ -1562,10 +1560,16 @@ aplicarTema();
 
     <!-- Tela de ajuda. É conteúdo estático de propósito: renderView() não tem
          ramo para 'ajuda' porque não há nada que dependa de dados, mês ou ano.
-         Se uma tela mudar de comportamento, o texto correspondente aqui muda
-         junto — é a única parte do app que mente em silêncio quando envelhece. -->
+
+         Ela já foi um guia tela a tela. Depois que cada tela ganhou o próprio
+         "Como funciona", essas seções viraram cópia — e cópia de explicação é
+         pior que explicação nenhuma: uma das duas envelhece sem ninguém notar,
+         e não dá para saber qual das duas está mentindo. Ficou aqui só o que não
+         pertence a nenhuma tela: o roteiro de quem está começando, o seletor de
+         período (que é da barra lateral), o Painel (que não tem bloco por ser a
+         primeira tela que se vê), os conceitos de finanças e as dúvidas. -->
     <section class="view ajuda" id="view-ajuda">
-      <div class="topbar"><h2>Como usar o Kofre+</h2><div class="period">Guia de todas as telas</div></div>
+      <div class="topbar"><h2>Como usar o Kofre+</h2><div class="period">O que não cabe em nenhuma tela</div></div>
 
       <div class="card">
         <div class="card-desc">Pule direto para o que você procura:</div>
@@ -1573,12 +1577,7 @@ aplicarTema();
           <button class="filter-tab" onclick="irParaAjuda('aj-passos')">Primeiros passos</button>
           <button class="filter-tab" onclick="irParaAjuda('aj-periodo')">Ano e mês</button>
           <button class="filter-tab" onclick="irParaAjuda('aj-painel')">Painel</button>
-          <button class="filter-tab" onclick="irParaAjuda('aj-lancamentos')">Lançamentos</button>
-          <button class="filter-tab" onclick="irParaAjuda('aj-cartoes')">Cartões</button>
-          <button class="filter-tab" onclick="irParaAjuda('aj-contasfixas')">Contas Fixas</button>
-          <button class="filter-tab" onclick="irParaAjuda('aj-orcamento')">Orçamento</button>
-          <button class="filter-tab" onclick="irParaAjuda('aj-categorias')">Categorias</button>
-          <button class="filter-tab" onclick="irParaAjuda('aj-investimentos')">Investimentos</button>
+          <button class="filter-tab" onclick="irParaAjuda('aj-conceitos')">Conceitos</button>
           <button class="filter-tab" onclick="irParaAjuda('aj-config')">Config</button>
           <button class="filter-tab" onclick="irParaAjuda('aj-duvidas')">Dúvidas</button>
         </div>
@@ -1617,22 +1616,14 @@ aplicarTema();
         </details>
       </div>
 
-      <div class="card" id="aj-lancamentos">
-        <h3>Lançamentos</h3>
-        <p>A tela do dia a dia. Em cima ficam dois formulários — <b>Nova Receita</b> (verde) e <b>Nova Despesa</b> (vermelho) — e embaixo a lista do mês selecionado.</p>
-        <p><b>Os campos:</b> data, descrição e valor são obrigatórios. O valor aceita o formato brasileiro, com vírgula nos centavos (<code>1.500,00</code>). "Conta" é livre, para você anotar de onde saiu o dinheiro: Pix, débito, dinheiro.</p>
-        <p><b>O seletor de categoria é um atalho de digitação</b>, não um campo salvo. Ao escolher "Transporte", o app escreve essa palavra na descrição para você — e é lendo a descrição que ele classifica depois. Você pode ignorar o seletor e digitar tudo na mão.</p>
-        <p><b>Parcelas</b> (só em despesa): digite 10 e o app cria os 10 lançamentos de uma vez, numerados <code>(1/10)</code>, <code>(2/10)</code> e assim por diante, cada um caindo um mês depois do anterior. O valor que você informa é o <b>da parcela</b>, não o total da compra.</p>
-        <p><b>Cartão:</b> escolhendo um cartão, aparece logo abaixo um aviso dizendo em qual fatura aquela compra vai cair e em que mês ela vira despesa. Deixando em "Nenhum (à vista)", a despesa conta no próprio mês da data.</p>
-        <p><b>Na lista:</b> as abas filtram por Todos, Receitas, Despesas e Parcelados. São 10 linhas por página. Compras parceladas aparecem agrupadas — dá para abrir o grupo e ver as parcelas uma a uma, ou excluir o grupo inteiro de uma vez. Para corrigir algo, use o lápis e edite ali mesmo na linha.</p>
-        <p>A lista mostra <b>só o mês selecionado</b> na barra lateral. Se um lançamento sumiu, quase sempre é isso: ele está em outro mês.</p>
-      </div>
-
-      <div class="card" id="aj-cartoes">
-        <h3>Cartões</h3>
-        <p>Aqui vive a parte mais confusa de finanças pessoais, e é a que o app resolve sozinho: <b>compra no cartão não é gasto do dia da compra, é gasto do dia em que a fatura vence</b>.</p>
-        <p>Cadastre cada cartão com o <b>dia de fechamento</b> e o <b>dia de vencimento</b>. Só isso já basta — o app calcula sozinho, para cada compra, em qual fatura ela caiu. O limite é opcional e serve só para você acompanhar quanto já comprometeu.</p>
-        <p>A tela mostra as faturas do mês selecionado (dá para abrir e ver item a item), um gráfico com as faturas ao longo do ano e a lista dos cartões cadastrados. Os cartões valem para a família toda.</p>
+      <!-- O "como funciona" de cada tela mora na própria tela, no bloco recolhível
+           embaixo do título. O que sobrou aqui são os conceitos: não é o app que
+           está sendo explicado, é a ideia de finanças por trás dele, e essa não
+           tem tela a que pertencer. Fechados por padrão — quem já sabe passa
+           direto, e o texto principal não vira aula. -->
+      <div class="card" id="aj-conceitos">
+        <h3>Se algum termo travar</h3>
+        <p>Cada tela explica o próprio funcionamento no <b>Como funciona</b>, logo abaixo do título dela. Aqui ficam as ideias que valem para qualquer app de finanças, não só para este.</p>
         <details class="conceito">
           <summary>Fechamento e vencimento não são a mesma coisa?</summary>
           <div class="corpo">
@@ -1641,41 +1632,10 @@ aplicarTema();
             <p>É por isso que a mesma semana de compras pode aparecer em dois meses diferentes no Painel. Não é erro.</p>
           </div>
         </details>
-      </div>
-
-      <div class="card" id="aj-contasfixas">
-        <h3>Contas Fixas</h3>
-        <p>Para tudo que se repete todo mês. Cadastre o nome, a categoria, o valor esperado e o dia do vencimento.</p>
-        <p><b>Como o app sabe que a conta foi paga:</b> ele procura, entre os lançamentos do mês, algum cuja descrição contenha o nome da conta. Se você cadastrou "Aluguel" e lançou uma despesa escrita "Aluguel março", ela é reconhecida e a conta aparece como paga. Por isso vale cadastrar com um nome curto e usar esse mesmo nome ao lançar.</p>
-        <p><b>Se a conta é debitada num cartão</b>, escolha o cartão no cadastro. Aí o "Marcar como paga" já joga o valor na fatura certa, em vez de contar como saída do mês.</p>
-        <p>Ao abrir o app, se houver conta vencida ou vencendo hoje ainda em aberto, aparece um aviso no rodapé da tela com os nomes e o total. Ele some sozinho em 10 segundos; fechando no ✕, não volta a incomodar naquela sessão. E se a conta for marcada como paga enquanto ele está na tela — inclusive por outra pessoa da família, em outro aparelho — o aviso se corrige sozinho.</p>
-      </div>
-
-      <div class="card" id="aj-orcamento">
-        <h3>Orçamento</h3>
-        <p>Define um teto de gasto mensal por categoria e mostra quanto você já usou dele no mês selecionado.</p>
-        <p>O sinal do lado direito é direto: <b>🟢 OK</b> enquanto o gasto está abaixo de 85% do teto, <b>🟡 Atenção</b> a partir de 85%, <b>🔴 Estourou</b> quando passou. Para mudar um valor já cadastrado, basta clicar nele e digitar por cima.</p>
-        <p>O "gasto real" soma as despesas do mês que caem naquela categoria — seja porque a categorização automática as classificou assim, seja porque o nome da categoria aparece no campo "Conta" do lançamento.</p>
         <details class="conceito">
-          <summary>Quanto devo colocar em cada categoria?</summary>
+          <summary>Quanto devo colocar em cada categoria do orçamento?</summary>
           <div class="corpo"><p>Não existe número certo. O caminho mais fácil é olhar o que você de fato gastou nos últimos dois ou três meses no Painel, usar esse valor como teto inicial e ir apertando aos poucos nas categorias que você quer reduzir. Teto irreal demais só faz tudo ficar vermelho e você parar de olhar.</p></div>
         </details>
-      </div>
-
-      <div class="card" id="aj-categorias">
-        <h3>Categorias</h3>
-        <p>É o motor que classifica seus lançamentos sozinho. Cada regra é um par: uma <b>palavra-chave</b> e a <b>categoria</b> que ela aciona. Cadastrando <code>uber</code> → <b>Transporte</b>, qualquer lançamento com "uber" na descrição vira Transporte.</p>
-        <p>O <b>tipo</b> decide onde a categoria aparece: só em Nova Receita, só em Nova Despesa, ou nos dois. É o que evita uma categoria de gasto ser oferecida quando você está lançando um salário.</p>
-        <p><b>A ordem importa:</b> vale a primeira regra que bater com a descrição. Se nenhuma bater, o app ainda tenta encontrar o nome de alguma categoria dentro da descrição; não achando nada, classifica como <b>Outros</b>. Muita coisa caindo em "Outros" é o sinal de que falta cadastrar palavra-chave aqui.</p>
-        <p>Vale lembrar: a categoria não fica gravada no lançamento, ela é calculada a partir da descrição toda vez. Então corrigir uma regra aqui reclassifica também tudo que já foi lançado.</p>
-      </div>
-
-      <div class="card" id="aj-investimentos">
-        <h3>Investimentos</h3>
-        <p>Uma carteira separada do fluxo do mês — o que entra aqui não mexe no saldo nem no orçamento.</p>
-        <p>As abas no topo são as <b>classes</b> (ações, fundos imobiliários, renda fixa...), e dá para criar outras no <b>+</b>. Cada aporte registra o ativo, o segmento, a data, a quantidade de cotas e o valor pago por cota.</p>
-        <p>A coluna <b>preço atual</b> é editável: digite ali o preço de hoje e o app recalcula quanto a posição vale agora, quanto rendeu em reais e em percentual. Nada é buscado da internet — a atualização é sua, quando você quiser conferir.</p>
-        <p>Há ainda uma aba de <b>dividendos</b>, para anotar o que os ativos pagaram, e uma de <b>distribuição</b>, que mostra o peso de cada classe e de cada ativo na carteira.</p>
         <details class="conceito">
           <summary>Cota, aporte, dividendo, rentabilidade</summary>
           <div class="corpo">
