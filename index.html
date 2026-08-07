@@ -602,16 +602,15 @@
                membro). Só aqui prender a pessoa se justifica.
 
      A pilha do rodapé é a mesma que o aviso de falha de sincronização já usava,
-     então os dois nunca se sobrepõem — antes cada um se posicionava por conta. */
+     então os dois nunca se sobrepõem — antes cada um se posicionava por conta.
+
+     Houve uma segunda pilha, no meio da tela, só para o aviso de conta vencida.
+     Ela cumpria o papel de não deixar o recado passar batido, mas ao custo de
+     nascer em cima do que a pessoa abriu o app para ver. Voltou para o rodapé,
+     agora sem prazo para sumir — quem precisa mesmo ver ganha permanência, não
+     posição. */
   #avisos{ position:fixed; left:50%; transform:translateX(-50%); bottom:16px; z-index:var(--z-aviso);
     width:min(560px,92vw); display:flex; flex-direction:column; gap:8px; pointer-events:none; }
-  /* Pilha do meio da tela, para o recado que a pessoa precisa mesmo ver: conta
-     vencida some do rodapé com o olho indo direto para os números. Continua
-     sendo aviso, não caixa de decisão — não escurece o fundo nem tranca a
-     página, dá para trabalhar em volta e fechar quando quiser. */
-  #avisosCentro{ position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:var(--z-aviso);
-    width:min(520px,92vw); display:flex; flex-direction:column; gap:8px; pointer-events:none; }
-  #avisosCentro .toast{ box-shadow:0 18px 50px var(--sombra); }
   .toast{ pointer-events:auto; display:flex; gap:10px; align-items:flex-start;
     background:var(--panel-2); border:1px solid var(--border); border-left:3px solid var(--muted);
     color:var(--text); padding:12px 14px; border-radius:10px; font-size:13px; line-height:1.45;
@@ -850,19 +849,53 @@
   .filter-tab:hover{ color:var(--text); }
   .filter-tab.active{ background:var(--accent-soft); color:var(--accent); border-color:var(--accent); }
 
-  /* MOBILE TOPBAR + GAVETA */
+  /* MOBILE TOPBAR + GAVETA + BARRA DE BAIXO */
   .mobile-topbar{ display:none; }
   .sidebar-overlay{ display:none; }
+  /* No desktop a barra lateral já mostra as nove telas de uma vez; a barra de
+     baixo só existe para o celular, onde elas estavam todas escondidas atrás do
+     ☰ — duas paradas de dedo para chegar em qualquer lugar do app. */
+  .bottom-nav{ display:none; }
 
   @media (max-width: 980px){
+    /* Altura da barra de baixo em um lugar só: o conteúdo, os recados e o que
+       mais vier precisam saber onde o chão acaba, e três números soltos saem
+       de sincronia no primeiro ajuste de padding. */
+    :root{ --barra-baixo:calc(58px + env(safe-area-inset-bottom)); }
+
     .mobile-topbar{
       display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:var(--z-topo);
       background:var(--panel); border-bottom:1px solid var(--border);
       padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
     }
-    .mobile-topbar .hamburger{ background:transparent; border:1px solid var(--border); border-radius:8px;
-      width:40px; height:40px; color:var(--text); font-size:18px; flex-shrink:0; }
     .mobile-topbar .mt-title{ font-family:'Fraunces'; font-weight:700; font-size:15px; }
+
+    /* A barra de baixo: quatro telas do dia a dia e "Mais", que abre a gaveta
+       com as outras cinco e com o seletor de mês. Cinco colunas iguais é o que
+       cabe em 360px sem o rótulo virar reticências. */
+    .bottom-nav{
+      display:grid; grid-template-columns:repeat(5,1fr);
+      position:fixed; left:0; right:0; bottom:0; z-index:var(--z-topo);
+      height:var(--barra-baixo); padding-bottom:env(safe-area-inset-bottom);
+      background:var(--panel); border-top:1px solid var(--border);
+    }
+    .bn-btn{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+      background:transparent; border:none; color:var(--muted);
+      font-size:10px; font-weight:600; letter-spacing:.01em; padding:0 2px; min-width:0; }
+    .bn-btn .ic{ width:44px; height:26px; border-radius:13px; flex-shrink:0;
+      display:inline-flex; align-items:center; justify-content:center; transition:background .14s; }
+    .bn-btn .ic svg{ width:21px; height:21px; }
+    /* Rótulo de uma linha só: "Lançamentos" em 360px encosta na borda da coluna,
+       e deixar quebrar desalinharia os ícones dos vizinhos. */
+    .bn-lbl{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* A pílula atrás do ícone não é enfeite. Medido nesta barra: no tema escuro o
+       acento (#9A93EC) e o apagado (#A09E9A) dão 6,29:1 e 6,36:1 contra o painel
+       — praticamente a mesma luminância. Trocar só a cor deixaria "qual está
+       aberto" dependendo de enxergar matiz, e o negrito sozinho é pista fraca em
+       rótulo de 10px. A pílula é a mesma dupla acento/acento-suave que a gaveta
+       já usa, e cabe no ícone em vez de pintar um quinto da barra. */
+    .bn-btn.active{ color:var(--accent); font-weight:700; }
+    .bn-btn.active .ic{ background:var(--accent-soft); }
 
     .app{ flex-direction:column; }
     .sidebar{
@@ -877,7 +910,9 @@
     }
     .sidebar-overlay.open{ opacity:1; pointer-events:auto; }
 
-    .main{ padding:16px 14px calc(40px + env(safe-area-inset-bottom)); margin:0; max-width:none; width:100%; }
+    /* A folga de baixo agora conta a barra fixa: sem isso o último card fica
+       debaixo dela e não há rolagem que o traga de volta. */
+    .main{ padding:16px 14px calc(var(--barra-baixo) + 24px); margin:0; max-width:none; width:100%; }
     /* a barra do topo é sticky no celular: sem esta folga o índice da Ajuda
        levaria o título do card para debaixo dela */
     .ajuda .card{ scroll-margin-top:calc(74px + env(safe-area-inset-top)); }
@@ -953,8 +988,9 @@
        indicador nativo invisível — é ele que recebe o clique */
     .field input[type=date]{ background-position:right 12px center; }
 
-    /* O recado sobe acima da barra de gestos do aparelho. */
-    #avisos{ width:calc(100vw - 24px); bottom:calc(12px + env(safe-area-inset-bottom)); }
+    /* O recado sobe acima da barra de navegação (que já embute a barra de gestos
+       do aparelho): pousado no chão, ele tapava os cinco itens do menu. */
+    #avisos{ width:calc(100vw - 24px); bottom:calc(var(--barra-baixo) + 12px); }
     /* Botões largos e empilhados, do tamanho do dedo. column-reverse deixa a
        ação principal em cima: é a que a pessoa procura, e no celular o alcance
        do polegar não faz a ordem da esquerda para a direita valer nada. */
@@ -1034,10 +1070,11 @@ aplicarTema();
 <!-- Pilha de recados do rodapé e caixa de decisão. aria-live faz o leitor de
      tela anunciar o recado sem tirar o foco de onde a pessoa está. -->
 <div id="avisos" aria-live="polite"></div>
-<div id="avisosCentro" aria-live="polite"></div>
 <div id="dialogo" class="hidden" role="dialog" aria-modal="true"></div>
+<!-- O ☰ saiu daqui: a gaveta agora abre pelo "Mais" da barra de baixo. Dois
+     botões para a mesma gaveta, um em cada ponta da tela, é ruído — e o de cima
+     era o mais longe do polegar. -->
 <div class="mobile-topbar">
-  <button class="hamburger" id="hamburgerBtn">☰</button>
   <div class="mt-title">Kofre+</div>
 </div>
 <!-- Primeiro alvo do Tab: sem isto, quem navega por teclado atravessa os 9
@@ -1444,9 +1481,9 @@ aplicarTema();
 
       <div class="card" id="aj-periodo">
         <h3>O seletor de ano e mês</h3>
-        <p>Na barra lateral, embaixo da navegação, tem a escolha de <b>ano</b> e <b>mês</b>. Ela vale para todas as telas ao mesmo tempo: trocar o mês ali muda o Painel, a lista de Lançamentos, o Orçamento, as Contas Fixas e as faturas dos Cartões de uma vez só.</p>
+        <p>Na barra lateral, embaixo da navegação, tem a escolha de <b>ano</b> e <b>mês</b> — no celular, ela abre pelo <b>Mais</b>, na barra de baixo. Vale para todas as telas ao mesmo tempo: trocar o mês ali muda o Painel, a lista de Lançamentos, o Orçamento, as Contas Fixas e as faturas dos Cartões de uma vez só.</p>
         <p>O app sempre abre no mês de hoje. O <b>+</b> ao lado dos anos serve para preparar um ano futuro antes de ter qualquer lançamento nele; um ano adicionado assim, enquanto continuar vazio, pode ser removido no <b>×</b>.</p>
-        <p>No celular, essa barra fica escondida — toque no ícone de menu no topo para abri-la.</p>
+        <p>No celular, essa barra fica escondida — toque em <b>Mais</b>, no canto direito da barra de baixo, para abri-la.</p>
       </div>
 
       <div class="card" id="aj-painel">
@@ -1495,7 +1532,7 @@ aplicarTema();
         <p>Para tudo que se repete todo mês. Cadastre o nome, a categoria, o valor esperado e o dia do vencimento.</p>
         <p><b>Como o app sabe que a conta foi paga:</b> ele procura, entre os lançamentos do mês, algum cuja descrição contenha o nome da conta. Se você cadastrou "Aluguel" e lançou uma despesa escrita "Aluguel março", ela é reconhecida e a conta aparece como paga. Por isso vale cadastrar com um nome curto e usar esse mesmo nome ao lançar.</p>
         <p><b>Se a conta é debitada num cartão</b>, escolha o cartão no cadastro. Aí o "Marcar como paga" já joga o valor na fatura certa, em vez de contar como saída do mês.</p>
-        <p>Ao abrir o app, se houver conta vencida ou vencendo hoje ainda em aberto, aparece um aviso. Ele some quando a conta é marcada como paga — inclusive se quem pagou foi outra pessoa da família, em outro aparelho. Se você fechar o aviso no ✕, ele não volta a incomodar naquela sessão.</p>
+        <p>Ao abrir o app, se houver conta vencida ou vencendo hoje ainda em aberto, aparece um aviso no rodapé da tela. Ele fica ali até você fechar no ✕ — e, fechado, não volta a incomodar naquela sessão. Some sozinho quando a conta é marcada como paga, inclusive se quem pagou foi outra pessoa da família, em outro aparelho.</p>
       </div>
 
       <div class="card" id="aj-orcamento">
@@ -1561,6 +1598,19 @@ aplicarTema();
 
   </main>
 </div>
+
+<!-- Barra de navegação do celular. Fica fora de .app porque é fixa na janela, não
+     no fluxo do conteúdo. São as quatro telas que se abre todo dia; as outras
+     cinco e o seletor de mês continuam na gaveta, agora atrás do "Mais".
+     Para trocar quais aparecem aqui, basta mudar o data-view (e o ícone) — o
+     "Mais" se acende sozinho sempre que a tela aberta não estiver na barra. -->
+<nav class="bottom-nav" id="bottomNav" aria-label="Navegação principal">
+  <button class="bn-btn" type="button" data-view="painel"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="bn-lbl">Painel</span></button>
+  <button class="bn-btn" type="button" data-view="lancamentos"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span><span class="bn-lbl">Lançar</span></button>
+  <button class="bn-btn" type="button" data-view="contasfixas"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg></span><span class="bn-lbl">Contas</span></button>
+  <button class="bn-btn" type="button" data-view="cartoes"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg></span><span class="bn-lbl">Cartões</span></button>
+  <button class="bn-btn" type="button" id="bnMais" aria-haspopup="menu" aria-expanded="false"><span class="ic"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></span><span class="bn-lbl">Mais</span></button>
+</nav>
 
 <script>
 const STORAGE_KEY = 'painel_financeiro_db_v1';
@@ -1722,14 +1772,13 @@ function svgTraco(tipo){
 /* msg é a frase principal; opts.titulo é o rótulo acima dela, opts.detalhe é a
    linha secundária em cinza.
    opts.duracao em ms, ou 0 para ficar até a pessoa fechar — reservado para
-   recado que ela precisa mesmo ver, como conta vencida.
-   opts.centro joga o recado para o meio da tela, em vez do rodapé: é para o
-   caso raro em que passar batido custa dinheiro. No rodapé o recado divide a
-   atenção com os números do painel, que é justamente para onde o olho vai. */
+   recado que ela precisa mesmo ver, como conta vencida. Todo recado sai no
+   rodapé: quando um deles precisa de mais peso, o que muda é o prazo, não o
+   lugar. */
 function avisar(msg, opts){
   const o = opts || {};
   const tipo = o.tipo || 'info';
-  const pilha = document.getElementById(o.centro ? 'avisosCentro' : 'avisos');
+  const pilha = document.getElementById('avisos');
   if(!pilha){ console.log('[Kofre+]', msg); return null; }
 
   const el = document.createElement('div');
@@ -2464,18 +2513,32 @@ const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov
 function periodoDeHoje(){ const h = new Date(); return { year:h.getFullYear(), month:h.getMonth() }; }
 let state = Object.assign({ view:'painel' }, periodoDeHoje());
 
-document.querySelectorAll('.nav-btn').forEach(b=>{
+/* Os dois menus levam ao mesmo lugar: a lista da gaveta e a barra de baixo.
+   `[data-view]` pega os dois de uma vez — assim, item novo em qualquer um dos
+   dois já nasce funcionando. */
+document.querySelectorAll('.nav-btn, .bn-btn').forEach(b=>{
+  if(!b.dataset.view) return;
   b.onclick = ()=>{ state.view = b.dataset.view; renderNav(); renderView(); closeSidebar(); };
 });
-function openSidebar(){ document.querySelector('.sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
-function closeSidebar(){ document.querySelector('.sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
-const hb = document.getElementById('hamburgerBtn');
-if(hb) hb.onclick = ()=>{ document.querySelector('.sidebar').classList.contains('open') ? closeSidebar() : openSidebar(); };
+function openSidebar(){ document.querySelector('.sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); marcarMais(true); }
+function closeSidebar(){ document.querySelector('.sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); marcarMais(false); }
+function marcarMais(aberta){ const m = document.getElementById('bnMais'); if(m) m.setAttribute('aria-expanded', aberta ? 'true' : 'false'); }
+const bnMais = document.getElementById('bnMais');
+if(bnMais) bnMais.onclick = ()=>{ document.querySelector('.sidebar').classList.contains('open') ? closeSidebar() : openSidebar(); };
 const ov = document.getElementById('sidebarOverlay');
 if(ov) ov.onclick = closeSidebar;
 function renderNav(){
   document.querySelectorAll('.nav-btn').forEach(b=> b.classList.toggle('active', b.dataset.view===state.view));
   document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id==='view-'+state.view));
+  /* A barra de baixo mostra quatro das nove telas. Sem a segunda regra, abrir
+     Orçamento pela gaveta deixava a barra inteira apagada e a pessoa sem
+     referência de onde está — o "Mais" assume o aceso nesse caso. */
+  const naBarra = [...document.querySelectorAll('.bn-btn[data-view]')].some(b=> b.dataset.view===state.view);
+  document.querySelectorAll('.bn-btn').forEach(b=>{
+    const aceso = b.dataset.view ? b.dataset.view===state.view : !naBarra;
+    b.classList.toggle('active', aceso);
+    if(aceso) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+  });
 }
 
 function buildSidebarPeriod(){
@@ -3286,17 +3349,16 @@ function checkContasVencidasOuHoje(){
      é lembrete. Pintar as duas de vermelho apaga a diferença. */
   avisoVencimento = avisar(frase, {
     tipo: vencidas.length ? 'erro' : 'info',
-    /* 15s, e não até fechar: o recado aparece no meio da tela toda vez que o app
-       abre, e ficar parado ali obriga a fechar antes de usar qualquer coisa. Em
-       15s dá para ler as contas e o total sem que ele vire pedágio.
-       O aoFechar continua valendo só para o ✕ — sumir sozinho não conta como
-       "dispensado", então a correção que vem do servidor ainda pode aparecer. */
-    duracao: 15000,
-    /* o rótulo diz de onde vem: sem ele, "9 vencidas e 1 vencendo hoje" no meio
-       da tela não deixa claro que a lista é de contas fixas, e não de
+    /* Até a pessoa fechar. Os 15s vinham de o recado nascer no meio da tela, em
+       cima dos números — ali, ficar parado virava pedágio. No rodapé ele não
+       disputa espaço com nada, e conta vencida é justamente o caso em que sumir
+       sozinho custa dinheiro: quem abriu o app e foi atender o telefone volta e
+       o aviso ainda está lá. */
+    duracao: 0,
+    /* o rótulo diz de onde vem: sem ele, "9 vencidas e 1 vencendo hoje" no
+       rodapé não deixa claro que a lista é de contas fixas, e não de
        lançamentos ou parcelas */
     titulo: 'Contas fixas',
-    centro: true,
     detalhe,
     aoFechar(){ avisoVencimentoDispensado = true; }
   });
