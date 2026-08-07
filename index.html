@@ -1418,6 +1418,18 @@ aplicarTema();
 
     <section class="view" id="view-investimentos">
       <div class="topbar"><h2>Investimentos</h2><div class="period">Carteira de investimentos — atualize o preço atual quando quiser conferir a rentabilidade</div></div>
+      <div class="card-desc">
+        Uma carteira à parte do fluxo do mês: aporte não é despesa, não mexe no saldo nem no orçamento. Esta é também a única tela que ignora o mês escolhido no topo — ela mostra a carteira inteira, sempre.
+        <details class="desc-mais" open>
+          <summary>Como funciona</summary>
+          <ul>
+            <li><b>As abas são as classes</b> — Ações, Fundos Imobiliários, Tesouro Direto —, mais <b>Visão Geral</b>, <b>Dividendos</b> e <b>Distribuição</b>. O <b>+ Classe</b> cria outras; uma classe criada por você só some enquanto ainda estiver vazia.</li>
+            <li><b>Aportes do mesmo ativo se juntam numa linha só.</b> Comprando o mesmo papel em datas e preços diferentes, o app soma as cotas e divide pelo total pago — é daí que sai o <b>preço médio</b>. O histórico embaixo continua mostrando cada aporte separado.</li>
+            <li><b>O preço atual é você quem dá; nada vem da internet.</b> No primeiro aporte de um ativo ele nasce igual ao que você pagou, e por isso a rentabilidade começa em 0%. Digite o preço de hoje na coluna <b>Preço atual</b> e o app recalcula quanto a posição vale, o lucro em reais e o percentual.</li>
+            <li><b>Enquanto você não vender, o lucro é no papel</b> — o número só muda quando você atualiza um preço. Os dividendos ficam à parte, na aba deles: são dinheiro que já caiu na sua mão e não entram nessa conta.</li>
+          </ul>
+        </details>
+      </div>
       <div class="filter-tabs" id="invSubNav"></div>
       <div class="year-add-row" id="invClassAddRow">
         <input type="text" id="invClassAddInput" placeholder="Ex: Criptomoedas">
