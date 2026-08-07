@@ -337,6 +337,12 @@
      dd/mm/aaaa, o select para a seta), então um campo saía mais alto que o
      vizinho — 2px no Chrome e mais de 6px no Safari do iPhone, onde o de data
      ficava visivelmente mais gordo que os outros dentro do mesmo card. */
+  /* ⚠️ Este `min-width:120px` é um piso para todo campo estreito do app. O
+     `.field` é `overflow:hidden`, então um `max-width` menor que 120px não
+     encolhe o input — apenas corta a borda direita dele, e a caixinha aparece
+     sem fechar. Já mordeu duas vezes (o "Dia venc." das contas fixas e o
+     "Cotas" do aporte). **Ao capar a largura de um campo, não desça de 120px.**
+     No celular o valor vira 0 (ver o @media), então lá o teto é livre. */
   .field input, .field select{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
     padding:8px 10px; color:var(--text); font-size:13px; outline:none; min-width:120px; height:34px; }
   .field input:focus, .field select:focus{ border-color:var(--accent); }
@@ -443,6 +449,18 @@
   .codigo-box .valor{ flex:1; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:600;
     color:var(--accent); letter-spacing:.06em; user-select:all; word-break:break-all; }
 
+  /* Os 4px não são estética: são exatamente o tamanho do anel de foco do app
+     (outline 2px + outline-offset 2px). Como este container é overflow-x:auto,
+     sem o padding o anel de quem está na primeira e na última coluna seria
+     cortado pela própria rolagem; a margem negativa cancela o recuo para a
+     tabela continuar alinhada com o resto do card.
+
+     Efeito colateral esperado: o pai (#lancTableWrap) passa a medir
+     `scrollWidth` 4px maior que `clientWidth`. **Isso não é transbordo** — é o
+     que margem negativa faz sob overflow:visible, e a sangria mora com folga
+     dentro dos 20px de padding do card (medido: 13px no celular, 17px no
+     desktop, nenhum ancestral cortando). Não "conserte" zerando margin/padding:
+     o +4 some e o anel de foco volta a ser cortado. */
   .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -4px; padding:0 4px; }
   table.data{ width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
   table.data th{ text-align:left; color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.1em;
@@ -4081,7 +4099,8 @@ function renderCarteiraClasse(wrap, classe){
         <div class="field" style="min-width:150px;"><label>${meta.tickerLabel}</label><input type="text" id="apTicker" placeholder="${meta.tickerPh}"></div>
         <div class="field"><label>Segmento</label><input type="text" id="apSegmento" placeholder="${meta.segPh}"></div>
         <div class="field"><label>Data</label><input type="date" id="apData"></div>
-        <div class="field" style="max-width:100px;"><label>Cotas</label><input type="text" inputmode="decimal" id="apCotas" placeholder="1"></div>
+        <!-- 120px é o piso, não escolha de gosto: ver a nota na regra .field input -->
+        <div class="field" style="max-width:120px;"><label>Cotas</label><input type="text" inputmode="decimal" id="apCotas" placeholder="1"></div>
         <div class="field"><label>Valor da cota (R$)</label><input type="text" inputmode="decimal" id="apValorCota" placeholder="99,33"></div>
         <button class="btn" onclick="addAporte('${classe}')">+ Adicionar</button>
       </div>
