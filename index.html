@@ -1263,6 +1263,18 @@ aplicarTema();
         </div>
       </div>
 
+      <div class="card-desc">
+        Onde entra tudo que você ganhou e gastou. Os formulários lançam na data que você digitar, seja ela deste mês ou não; a lista embaixo mostra sempre o mês escolhido no topo. Só a despesa tem cartão e parcelas.
+        <details class="desc-mais" open>
+          <summary>Como funciona</summary>
+          <ul>
+            <li><b>O select "Categoria" é um atalho de escrita, não um campo salvo.</b> Escolher "Transporte" cola essa palavra na descrição e o select volta ao vazio — a categoria de verdade sai sempre da descrição, pelo motor de Categorias. Dá para ignorar o select e digitar tudo na mão.</li>
+            <li><b>"Valor da parcela" é o valor de cada parcela, não o total.</b> Pedindo 3 parcelas de R$ 150, o app cria três despesas de R$ 150 — ele não divide um total por três.</li>
+            <li><b>Cada parcela vira um lançamento próprio</b>, um mês depois do anterior e numerado "(1/3)" na descrição. Na lista elas aparecem agrupadas numa linha só, que abre; a aba <b>Parcelados</b> mostra só esses.</li>
+            <li><b>Escolhendo um cartão, a despesa entra na fatura dele</b> — e o app diz embaixo do formulário em qual. Na lista, a data é a da compra e o mês em que o valor conta vai logo abaixo dela: é por isso que um gasto de julho pode aparecer no painel de agosto.</li>
+          </ul>
+        </details>
+      </div>
       <div class="split-forms">
         <div class="entry-card income">
           <h3><span class="entry-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18V6"/><path d="M6.5 11.5 12 6l5.5 5.5"/><path d="M5 21h14"/></svg></span>Nova Receita</h3>
