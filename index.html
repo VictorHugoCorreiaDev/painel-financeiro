@@ -1405,7 +1405,18 @@ aplicarTema();
     <section class="view" id="view-categorias">
       <div class="topbar"><h2>Categorias</h2><div class="period">Motor de categorização automática</div></div>
       <div class="card">
-        <div style="font-size:12.5px; color:var(--muted); margin-bottom:14px;">Quando você lança algo, o app procura estas palavras-chave dentro da descrição e categoriza sozinho. O <b style="color:var(--text)">tipo</b> decide em qual formulário a categoria aparece: só em Nova Receita, só em Nova Despesa, ou nos dois.</div>
+        <div class="card-desc">
+          É o motor que classifica seus lançamentos sozinho. Cada linha é um par: uma <b>palavra-chave</b> e a <b>categoria</b> que ela aciona. Cadastrando "uber" → Transporte, qualquer lançamento com "uber" na descrição vira Transporte, em maiúscula ou minúscula.
+          <details class="desc-mais" open>
+            <summary>Como funciona</summary>
+            <ul>
+              <li><b>A ordem importa:</b> vale a primeira regra que bater com a descrição, de cima para baixo. Regra nova entra no topo da lista, então ela ganha das antigas — é assim que se corrige uma classificação sem apagar nada.</li>
+              <li><b>O tipo decide onde a categoria aparece</b> — só em Nova Receita, só em Nova Despesa, ou nos dois — <b>e também o que o motor considera</b>: marcada como despesa, ela não é oferecida ao lançar uma receita nem aplicada a uma. É o que evita categoria de gasto sendo sugerida num salário.</li>
+              <li><b>Quando nenhuma regra bate</b>, o app ainda procura o nome de alguma categoria dentro da própria descrição; não achando nada, classifica como "Outros". Muita coisa caindo em Outros é o sinal de que falta cadastrar palavra-chave aqui.</li>
+              <li><b>A categoria não fica gravada no lançamento</b> — é recalculada a partir da descrição toda vez. Por isso mexer numa regra aqui reclassifica também tudo que já foi lançado, sem precisar reeditar lançamento nenhum.</li>
+            </ul>
+          </details>
+        </div>
         <div class="form-row">
           <div class="field"><label>Palavra-chave</label><input type="text" id="cKw" placeholder="uber"></div>
           <div class="field"><label>Categoria</label><input type="text" id="cCat" placeholder="Transporte"></div>
