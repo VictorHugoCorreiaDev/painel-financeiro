@@ -786,7 +786,54 @@
      minmax(0,460px) e não 460px fixos para poderem encolher junto — coluna fixa
      estouraria a página em largura intermediária. */
   @media (min-width:1180px){ .config-cards{ grid-template-columns:repeat(2, minmax(0,460px)); } }
-  .card-desc{ font-size:12.5px; color:var(--muted); line-height:1.5; margin-bottom:14px; }
+  /* O max-width é a mesma medida de leitura da Ajuda (820px a 13.5px), reescalada
+     para os 12.5px daqui: dá a mesma quantidade de caracteres por linha. Sem ele,
+     num card de 966px o texto passava de 148 caracteres por linha e o olho perdia
+     onde a próxima começa. Nos cards do Config não muda nada — a coluna lá já é
+     mais estreita que este teto. */
+  .card-desc{ font-size:12.5px; color:var(--muted); line-height:1.5; margin-bottom:14px;
+              max-width:760px; }
+  /* O texto é cinza de propósito — é apoio, não conteúdo. O negrito volta para a
+     cor cheia porque é ele que dá o caminho para quem varre com o olho em vez de
+     ler: negrito na mesma tinta apagada não se destaca de nada. */
+  .card-desc b{ color:var(--text); }
+  /* Uma função por linha, quando a descrição explica mais de uma. O padding-left
+     é o recuo do marcador: o padrão do navegador (40px) joga o texto para dentro
+     e a lista deixa de se alinhar com o resto do card. */
+  .card-desc ul{ margin:9px 0 0; padding-left:17px; }
+  .card-desc li{ margin-bottom:6px; }
+  .card-desc li:last-child{ margin-bottom:0; }
+
+  /* Explicação longa que se recolhe só no celular.
+     No desktop o resumo some e a lista fica sempre à vista: ali sobra espaço, e
+     esconder atrás de um clique só faria a pessoa clicar. No celular a mesma
+     lista tem 533px de altura — empurrava o campo "Nome da conta" para baixo da
+     dobra, e quem já sabe usar a tela é obrigado a rolar meia tela de texto toda
+     vez que vem cadastrar uma conta.
+
+     Quem abre e fecha é `open`, no JS, porque `open` é atributo e atributo não
+     responde a media query. O HTML nasce com `open`: sem o JS, a lista aparece
+     inteira — o pior caso é a tela de antes, nunca a explicação sumida. */
+  .desc-mais > summary{ display:none; }
+  @media (max-width:980px){
+    /* O padding vertical é alvo de toque, não respiro: o texto do resumo tem 16px
+       de altura e dedo não acerta 16px. Com ele a área clicável vai a 40px sem o
+       desenho mudar. */
+    .desc-mais > summary{
+      display:inline-flex; align-items:center; gap:7px; padding:11px 0;
+      cursor:pointer; list-style:none;
+      font-size:12.5px; font-weight:600; color:var(--accent);
+    }
+    .desc-mais > summary::-webkit-details-marker{ display:none; }
+    /* Seta de canto em vez de ícone: é meia dúzia de linhas de CSS, gira sozinha
+       ao abrir e não precisa entrar na lista de ícones do app por um só uso. */
+    .desc-mais > summary::after{
+      content:''; flex:none; width:6px; height:6px; margin-top:-3px;
+      border-right:1.6px solid currentColor; border-bottom:1.6px solid currentColor;
+      transform:rotate(45deg); transition:transform .18s ease;
+    }
+    .desc-mais[open] > summary::after{ transform:rotate(-135deg); margin-top:2px; }
+  }
   .card-acoes{ display:flex; flex-wrap:wrap; gap:8px; }
   /* o margin-right do .btn.secondary existe para botões soltos; aqui quem
      separa é o gap, senão a distância entre dois botões vira 8+8 */
@@ -1277,7 +1324,18 @@ aplicarTema();
     <section class="view" id="view-contasfixas">
       <div class="topbar"><h2>Contas Fixas</h2><div class="period" id="periodLabelCF">—</div></div>
       <div class="card">
-        <div style="font-size:12.5px; color:var(--muted); margin-bottom:14px;">Cadastre contas recorrentes (aluguel, internet, luz...). O status "Paga" é detectado automaticamente quando existe um lançamento do mês batendo com o nome da conta. Se a conta é debitada num cartão, escolha o cartão: aí o "Marcar como paga" já joga o valor na fatura certa.</div>
+        <div class="card-desc">
+          Para o que se repete todo mês: aluguel, internet, luz, escola. Você cadastra uma vez e a conta passa a aparecer em todos os meses — a lista abaixo é sempre a do mês escolhido no topo, com o status recalculado mês a mês.
+          <details class="desc-mais" open>
+            <summary>Como funciona</summary>
+            <ul>
+              <li><b>O status é automático.</b> A conta vira 🟢 Paga quando existe uma despesa daquele mês com o nome dela na descrição. Cadastrando "Aluguel", um lançamento escrito "Aluguel de agosto" já conta — por isso vale cadastrar com nome curto e repetir esse nome ao lançar.</li>
+              <li><b>"Marcar como paga" lança para você:</b> cria a despesa com o valor esperado, na data do vencimento. O número ao lado do 🟢 é o do lançamento, não o esperado — é ali que você vê se a conta veio mais cara que o previsto. A setinha de desfazer, ao lado, apaga esse lançamento e devolve a conta para pendente.</li>
+              <li><b>Pago no cartão:</b> escolhendo o cartão, o valor entra na fatura dele e vira despesa no mês em que <b>a fatura</b> vence — não no mês em que a conta venceu. É por isso que marcar como paga uma conta do cartão não mexe nas despesas de hoje.</li>
+              <li><b>O app cobra por você:</b> o card "Contas fixas a pagar" do Painel soma o que ainda está pendente, e ao abrir o app um aviso no rodapé lista o que já venceu e continua em aberto.</li>
+            </ul>
+          </details>
+        </div>
         <div class="form-row">
           <div class="field"><label>Nome da conta</label><input type="text" id="cfNome" placeholder="Ex: Aluguel"></div>
           <div class="field"><label>Categoria</label><select id="cfCategoria"><option value="">Categoria...</option></select></div>
@@ -1532,7 +1590,7 @@ aplicarTema();
         <p>Para tudo que se repete todo mês. Cadastre o nome, a categoria, o valor esperado e o dia do vencimento.</p>
         <p><b>Como o app sabe que a conta foi paga:</b> ele procura, entre os lançamentos do mês, algum cuja descrição contenha o nome da conta. Se você cadastrou "Aluguel" e lançou uma despesa escrita "Aluguel março", ela é reconhecida e a conta aparece como paga. Por isso vale cadastrar com um nome curto e usar esse mesmo nome ao lançar.</p>
         <p><b>Se a conta é debitada num cartão</b>, escolha o cartão no cadastro. Aí o "Marcar como paga" já joga o valor na fatura certa, em vez de contar como saída do mês.</p>
-        <p>Ao abrir o app, se houver conta vencida ou vencendo hoje ainda em aberto, aparece um aviso no rodapé da tela. Ele fica ali até você fechar no ✕ — e, fechado, não volta a incomodar naquela sessão. Some sozinho quando a conta é marcada como paga, inclusive se quem pagou foi outra pessoa da família, em outro aparelho.</p>
+        <p>Ao abrir o app, se houver conta vencida ou vencendo hoje ainda em aberto, aparece um aviso no rodapé da tela com os nomes e o total. Ele some sozinho em 10 segundos; fechando no ✕, não volta a incomodar naquela sessão. E se a conta for marcada como paga enquanto ele está na tela — inclusive por outra pessoa da família, em outro aparelho — o aviso se corrige sozinho.</p>
       </div>
 
       <div class="card" id="aj-orcamento">
@@ -2838,6 +2896,25 @@ if(window.matchMedia){
   });
 }
 atualizarAbasTema();
+
+/* Explicações longas de card (.desc-mais) nascem fechadas no celular e abertas
+   no desktop — ver o comentário da regra no CSS para o porquê. Aqui só o
+   mecanismo: `open` é atributo, não estilo, então media query sozinha não
+   resolve.
+
+   O `change` do matchMedia só dispara quando a largura CRUZA os 980px. É de
+   propósito: quem abriu a explicação no celular e girou o aparelho continua na
+   faixa estreita, nenhum evento acontece, e o texto que a pessoa mandou abrir
+   não fecha na mão dela. */
+if(window.matchMedia){
+  const telaEstreita = window.matchMedia('(max-width:980px)');
+  const sincronizarDescMais = ()=>{
+    document.querySelectorAll('details.desc-mais').forEach(d=>{ d.open = !telaEstreita.matches; });
+  };
+  telaEstreita.addEventListener('change', sincronizarDescMais);
+  sincronizarDescMais();
+}
+
 let invSub = 'geral';
 function escAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
 
