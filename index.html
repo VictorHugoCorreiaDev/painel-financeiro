@@ -1772,9 +1772,10 @@ function svgTraco(tipo){
 /* msg é a frase principal; opts.titulo é o rótulo acima dela, opts.detalhe é a
    linha secundária em cinza.
    opts.duracao em ms, ou 0 para ficar até a pessoa fechar — reservado para
-   recado que ela precisa mesmo ver, como conta vencida. Todo recado sai no
-   rodapé: quando um deles precisa de mais peso, o que muda é o prazo, não o
-   lugar. */
+   estado que continua valendo enquanto o aviso está na tela, como a falha de
+   sincronização: some sozinho ali seria dizer que voltou ao normal. Todo recado
+   sai no rodapé: quando um deles precisa de mais peso, o que muda é o prazo,
+   não o lugar. */
 function avisar(msg, opts){
   const o = opts || {};
   const tipo = o.tipo || 'info';
@@ -3289,9 +3290,10 @@ function contaFixaTransacao(cf, year, month){
    esquecimento já está custando juros. Agora entra tudo que venceu e continua
    pendente no mês — o aviso só sai da frente quando a conta é marcada como paga.
 
-   Não some sozinho, porque aparece na abertura, quando a pessoa ainda está se
-   situando na tela. Se ela fechar no ✕, não volta nesta sessão: insistir depois
-   de dispensado é o caminho para ninguém mais ler aviso nenhum. */
+   Some sozinho em 10s — o dobro de um recado comum, porque aparece na abertura,
+   quando a pessoa ainda está se situando na tela. Se ela fechar no ✕, não volta
+   nesta sessão: insistir depois de dispensado é o caminho para ninguém mais ler
+   aviso nenhum. */
 let avisoVencimento = null;      /* toast na tela agora */
 let avisoVencimentoChave = null; /* quais contas ele está mostrando */
 let avisoVencimentoDispensado = false;
@@ -3349,12 +3351,12 @@ function checkContasVencidasOuHoje(){
      é lembrete. Pintar as duas de vermelho apaga a diferença. */
   avisoVencimento = avisar(frase, {
     tipo: vencidas.length ? 'erro' : 'info',
-    /* Até a pessoa fechar. Os 15s vinham de o recado nascer no meio da tela, em
-       cima dos números — ali, ficar parado virava pedágio. No rodapé ele não
-       disputa espaço com nada, e conta vencida é justamente o caso em que sumir
-       sozinho custa dinheiro: quem abriu o app e foi atender o telefone volta e
-       o aviso ainda está lá. */
-    duracao: 0,
+    /* 10s: mais que os 6s de um erro comum, porque aqui há uma lista de nomes e
+       valores para ler, e menos que ficar parado até alguém fechar — no rodapé
+       o aviso não atrapalha, mas recado que nunca sai vira parte do cenário e
+       deixa de ser lido. Quem perdeu a leitura reencontra a conta na própria
+       seção de contas fixas. */
+    duracao: 10000,
     /* o rótulo diz de onde vem: sem ele, "9 vencidas e 1 vencendo hoje" no
        rodapé não deixa claro que a lista é de contas fixas, e não de
        lançamentos ou parcelas */
