@@ -1366,7 +1366,18 @@ aplicarTema();
         <div id="faturaTotais" class="fat-totais"></div>
       </div>
       <div class="card">
-        <div style="font-size:12.5px; color:var(--muted); margin-bottom:14px;">Cadastre seus cartões de crédito. Compras marcadas com um cartão entram como despesa no <b style="color:var(--text)">mês em que a fatura vence</b>, e não no mês da compra — que é como o dinheiro sai de verdade. Os cartões valem para a família toda.</div>
+        <div class="card-desc">
+          Cadastre o cartão com o dia de fechamento e o de vencimento — é desse par que sai todo o resto: em qual fatura cada compra cai e em que mês ela vira despesa. Os cartões valem para a família toda.
+          <details class="desc-mais" open>
+            <summary>Como funciona</summary>
+            <ul>
+              <li><b>A compra entra na fatura que ainda não fechou.</b> Comprando até o dia do fechamento, ela cai na fatura que fecha naquele mês; comprando depois, pula para a seguinte. Ao lançar uma despesa no cartão, o app já avisa embaixo do formulário em qual fatura aquilo caiu.</li>
+              <li><b>A despesa conta no mês em que a fatura vence</b>, não no mês da compra — que é como o dinheiro sai de verdade. Por isso uma compra de dezembro costuma pesar no painel de janeiro.</li>
+              <li><b>"Limite comprometido" não é o número que o banco mostra.</b> Aqui entra tudo que ainda não foi quitado, parcela futura inclusive; o app do banco costuma mostrar só a fatura corrente. O "disponível" ao lado é o limite menos esse total.</li>
+              <li><b>Marcar a fatura como quitada não mexe em total nenhum.</b> As compras dela já são a despesa, posicionadas no mês do vencimento — quitar só registra que aquele mês foi pago, sem criar lançamento, senão o mesmo dinheiro seria contado duas vezes. Fatura fechada fica na lista de a pagar até alguém marcar, mesmo depois de vencida.</li>
+            </ul>
+          </details>
+        </div>
         <div class="form-row">
           <div class="field"><label>Nome do cartão</label><input type="text" id="carNome" placeholder="Ex: Nubank"></div>
           <div class="field" style="max-width:120px;"><label>Dia fechamento</label><input type="number" step="1" min="1" max="31" id="carFechamento" placeholder="28"></div>
